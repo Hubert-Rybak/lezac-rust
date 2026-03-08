@@ -1,0 +1,217 @@
+// ================================================
+// Function: FUN_1000_2adc at 1000:2adc
+// ================================================
+
+void __cdecl16near FUN_1000_2adc(void)
+
+{
+  code *pcVar1;
+  undefined1 uVar2;
+  int iVar3;
+  undefined2 unaff_SS;
+  undefined2 unaff_DS;
+  undefined1 **ppuVar4;
+  undefined2 uVar5;
+  undefined1 *local_202;
+  undefined1 local_102 [252];
+  undefined2 uStack_6;
+  undefined2 uStack_4;
+  
+  uStack_4 = 0x1000;
+  uStack_6 = 0x2ae7;
+  FUN_1920_04df();
+  pcVar1 = (code *)swi(0x21);
+  (*pcVar1)();
+  *(undefined1 *)0x1b74 = 1;
+  *(undefined1 *)0x1b75 = 1;
+  FUN_1000_0faa();
+  *(undefined1 *)0x79b6 = 200;
+  *(undefined2 *)0x208a = 20000;
+  *(undefined1 *)0x79ca = 1;
+  local_202 = (undefined1 *)(uint)*(byte *)0x79b7;
+  FUN_1920_154e(0xff,local_102,unaff_SS,0);
+  *(undefined2 *)0x206e = (int)((ulong)*(undefined4 *)0x6612 >> 0x10);
+  *(undefined1 *)0x79c5 = 0;
+  *(undefined1 *)0x79c6 = 0;
+  *(undefined2 *)0xc20a = 0;
+  *(undefined2 *)0xc20c = 0;
+  *(undefined2 *)0xc1f0 = (int)*(undefined4 *)0xc1e0;
+  *(undefined1 *)0x1b78 = 0;
+  *(undefined1 *)0x1b7a = 0;
+  *(undefined1 *)0x1b79 = 0;
+  *(undefined1 *)0x1b7b = 0;
+  *(undefined2 *)0x2098 = 0;
+  *(undefined1 *)0x1b7e = 0;
+  *(undefined1 *)0x1b7f = 0;
+  *(undefined1 *)0x1b80 = 0;
+  *(undefined1 *)0x1b7d = 0;
+  *(undefined1 *)0x1b7c = 0;
+  *(undefined1 *)0x1b81 = 0;
+  *(undefined2 *)0x79f6 = 0xb4;
+  *(undefined2 *)0x79f4 = 0;
+  *(undefined2 *)0x209c = 0;
+  *(undefined2 *)0x209a = 0;
+  *(undefined1 *)0x79b0 = 0;
+  *(undefined1 *)0x79b1 = 0;
+  *(undefined1 *)0x208d = 0;
+  *(undefined2 *)0x207e = 199;
+  *(undefined2 *)0x2080 = 0;
+  *(undefined2 *)0x2076 = 0;
+  *(undefined1 *)0x208e = 0;
+  *(undefined2 *)0x78c8 = 0;
+  *(undefined1 *)0x79b2 = 0;
+  *(undefined2 *)0x2088 = 0;
+  *(undefined1 *)0x79b5 = 0;
+  *(undefined1 *)0x79cb = 0;
+  *(undefined1 *)0x79f9 = 0;
+  *(int *)0x2066 = *(int *)0xc204 << 1;
+  if (*(char *)0x79b8 == '\x02') {
+    local_202 = (undefined1 *)0x2bf0;
+    FUN_1000_0838();
+  }
+  else {
+    local_202 = (undefined1 *)0x2bf9;
+    FUN_1000_0838();
+  }
+  local_202 = (undefined1 *)0x2aa7;
+  FUN_1000_0709();
+  FUN_1000_01fc();
+  *(undefined2 *)0x2074 = 0x78;
+  *(undefined1 *)0x799f = 0xb;
+  FUN_1000_165a();
+  if (*(char *)0x79f8 != '\x01') {
+    local_202 = (undefined1 *)0x2ab2;
+    FUN_18ac_05dc();
+    local_202 = (undefined1 *)0x2c28;
+    iVar3 = FUN_1920_04a2();
+    if (iVar3 != 0) {
+      local_202 = (undefined1 *)0x2c31;
+      FUN_1000_00a3();
+    }
+    *(undefined1 *)0x79f8 = 1;
+  }
+  local_202 = (undefined1 *)0x5e;
+  ppuVar4 = &local_202;
+  uVar5 = unaff_SS;
+  FUN_1920_09da((uint)*(byte *)0x79cc * 0xd00 + 0x88a,unaff_DS);
+  FUN_1920_0a67(local_102,unaff_SS);
+  FUN_1000_146a(1,*(undefined2 *)0x78ce,0x1b,0xb,1,0x1f,0x1b,ppuVar4,uVar5);
+  local_202 = (undefined1 *)0x2c77;
+  uVar2 = FUN_184a_030f();
+  *(undefined1 *)0x2058 = uVar2;
+  local_202 = (undefined1 *)0x0;
+  FUN_1000_07c5(0,200,0x140);
+  if (*(char *)0x79f8 != '\x02') {
+    if (*(char *)0x79b7 == '\a') {
+      local_202 = (undefined1 *)0x2ac9;
+      FUN_18ac_05dc();
+    }
+    else {
+      local_202 = (undefined1 *)0x2abc;
+      FUN_18ac_05dc();
+    }
+    local_202 = (undefined1 *)0x2cb2;
+    iVar3 = FUN_1920_04a2();
+    if (iVar3 != 0) {
+      local_202 = (undefined1 *)0x2cbb;
+      FUN_1000_00a3();
+    }
+    *(undefined1 *)0x79f8 = 2;
+  }
+  *(undefined2 *)0x2082 = 1;
+  while( true ) {
+    if (*(char *)(*(int *)0x2082 + 0x79e5) == '\x01') {
+      local_202 = &stack0xfffe;
+      FUN_1000_2a41();
+    }
+    *(undefined1 *)(*(int *)0x2082 + 0x79eb) = 0xff;
+    if (*(int *)0x2082 == 2) break;
+    *(int *)0x2082 = *(int *)0x2082 + 1;
+  }
+  FUN_1000_2959();
+  local_202 = (undefined1 *)0xa0;
+  FUN_1000_07fa(0xffe0,3,0x27,0x25);
+  local_202 = (undefined1 *)0xa5;
+  FUN_1000_07c5(0xfff5,10,10);
+  local_202 = (undefined1 *)0xb5;
+  FUN_1000_07c5(0xfff6,10,10);
+  local_202 = (undefined1 *)0x2d2e;
+  FUN_1000_1174();
+  if (*(char *)0x79e6 == '\x01') {
+    *(int *)0x2074 = *(int *)0x79f4 + -0x2400;
+    local_202 = (undefined1 *)0x2d43;
+    FUN_1000_1239();
+  }
+  if (*(char *)0x79e7 == '\x01') {
+    *(int *)0x2074 = *(int *)0x79f6 + -0x2400;
+    local_202 = (undefined1 *)0x2d5a;
+    FUN_1000_1239();
+  }
+  *(undefined1 *)0xc496 = 1;
+  *(undefined1 *)0xc222 = *(undefined1 *)0xc326;
+  *(undefined1 *)0xc223 = *(undefined1 *)0xc327;
+  *(undefined2 *)0xc224 = *(undefined2 *)0xc328;
+  *(undefined2 *)0xc216 = 0;
+  *(undefined2 *)0xc218 = 0;
+  *(char *)0xc496 = *(char *)0xc496 + '\x01';
+  *(undefined1 *)0xc22a = *(undefined1 *)0xc326;
+  *(undefined1 *)0xc22b = *(undefined1 *)0xc327;
+  *(undefined2 *)0xc22c = *(undefined2 *)0xc328;
+  *(undefined1 *)0x1b89 = 0;
+  *(undefined2 *)0x1b8e = 0;
+  *(undefined2 *)0x1b90 = 0;
+  *(undefined2 *)0x1b92 = 0;
+  *(undefined2 *)0x1b94 = 0;
+  *(undefined1 *)0x1b9d = 0;
+  *(undefined1 *)0x1b88 = 0;
+  *(undefined1 *)0x1b9c = 0;
+  *(undefined2 *)0x1b96 = 0;
+  local_202 = (undefined1 *)0x1b9e;
+  FUN_1000_06ab(1,1,9,2);
+  *(undefined1 *)0x1baf = 1;
+  *(undefined2 *)0x1bb4 = 0;
+  *(undefined2 *)0x1bb6 = 0;
+  *(undefined2 *)0x1bb8 = 0;
+  *(undefined2 *)0x1bba = 0;
+  *(undefined1 *)0x1bc3 = 1;
+  *(undefined1 *)0x1bae = 0;
+  *(undefined1 *)0x1bc2 = 0;
+  *(undefined2 *)0x1bbc = 0;
+  local_202 = (undefined1 *)0x1bc4;
+  FUN_1000_06ab(1,1,0x1c,0x15);
+  if (*(char *)0x79e6 == '\x01') {
+    local_202 = (undefined1 *)0x1b88;
+    FUN_1000_056b(1);
+  }
+  else {
+    *(undefined2 *)0xc21e = 10000;
+    *(undefined2 *)0xc220 = 6000;
+  }
+  if (*(char *)0x79e7 == '\x01') {
+    local_202 = (undefined1 *)0x1bae;
+    FUN_1000_056b(2);
+  }
+  else {
+    *(undefined2 *)0xc226 = 10000;
+    *(undefined2 *)0xc228 = 6000;
+  }
+  *(undefined1 *)0x1b76 = 2;
+  *(undefined1 *)0x1b77 = 2;
+  *(undefined2 *)0x2082 = 1;
+  while( true ) {
+    if (*(char *)(*(int *)0x2082 + 0x79e5) == '\x01') {
+      local_202 = (undefined1 *)0x2e71;
+      FUN_1000_29db();
+    }
+    if (*(int *)0x2082 == 2) break;
+    *(int *)0x2082 = *(int *)0x2082 + 1;
+  }
+  if (*(char *)0x79b7 == '\a') {
+    local_202 = (undefined1 *)0x2ad3;
+    FUN_1000_08a5(100,100);
+  }
+  return;
+}
+
+
+

@@ -1,0 +1,573 @@
+=== MEMORY SEGMENTS ===
+Block: CODE_0               Start: 1000:0000  End: 1000:82cf  Size: 33488  Type: Default  Permissions: RWX
+Block: CODE_1               Start: 182d:0000  End: 182d:011f  Size: 288  Type: Default  Permissions: RWX
+Block: CODE_2               Start: 183f:0000  End: 183f:00af  Size: 176  Type: Default  Permissions: RWX
+Block: CODE_3               Start: 184a:0000  End: 184a:061f  Size: 1568  Type: Default  Permissions: RWX
+Block: CODE_4               Start: 18ac:0000  End: 18ac:073f  Size: 1856  Type: Default  Permissions: RWX
+Block: CODE_5               Start: 1920:0000  End: 1920:181f  Size: 6176  Type: Default  Permissions: RWX
+Block: CODE_6               Start: 1aa2:0000  End: 1aa2:1b0f  Size: 6928  Type: Default  Permissions: RWX
+Block: DATA                 Start: 1aa2:1b10  End: 2000:b10f  Size: 60384  Type: Default  Permissions: RW-
+Block: HEADER               Start: HEADER::00000000  End: HEADER::0000076f  Size: 1904  Type: Default  Permissions: ---
+
+=== DEFINED STRINGS ===
+  1920:01f1: !#$456789:;<=>?uRuntime error 
+  1aa2:008b: larax e zaco versione 1:0 shareware\ \se questo gioco vi diverte\e decidete di tenerlo\siete pregati di\registrare la vostra copia\inviando un contributo a\:\stefano zanobi v:gramsci 47\00015 monterotondo roma\ \con un contributo minimo di\lire 20000
+  1aa2:018b: riceverete la versione aggiornata\del gioco:\*\le prossime versioni conterranno\piu? livelli di gioco>\grafica digitalizzata>\nuove armi e nuovi gadgets per\placare ogni brama di distruzione>\nuovi mostri= nuovi guardiani e\altro ancora>
+  1aa2:028a: Xper chiarimenti o suggerimenti\contattare l?autore\ \supportate il software artigianale>
+  1aa2:038b: tasti\ \          gioc:1          gioc:2\ \sinistra;    z           frecce\destra  ;    x              =  \scendi  ;    c              =  \salta   ;    m              =  \
+  1aa2:048b: fuoco   ;    n              0  \esc abbandona la partita\ \per cambiare bomba;\premi sinistra e destra insieme:\e=r; regola la larghezza dello\schermo= con uno schermo solo:\s; disattiva o attiva lo sfondo:\il tasto scendi attiva\le piattaforme speciali:
+  1aa2:058b: *\per procedere nel gioco dovete\raccogliere bonus e= soprattutto=\far saltare in aria ogni cosa;\il riquadro centrale vi indica\il numero minimo di bonus da\raccogliere e la percentuale delle\costruzioni da distruggere per\completare il quadro:
+  1aa2:068b: avete tre vite a disposizione\quando ne perdete una\potete decidere\se continuare premendo fire o\se riiniziare quel livello da capo\attendendo qualche secondo:\non potrete rientrare in gioco se\non ci sono piu?abbastanza bonus\per terminare il livello:
+  1aa2:078b: premi 1 per un giocatore:\premi 2 per due giocatori:\i; informazioni:\z; istruzioni:\r; vedi records:\l; english:\esc per uscire:
+  1aa2:088b: preparati per il livello 
+  1aa2:098b: punteggio finale
+  1aa2:0a8a: 	giocatore
+  1aa2:0b8b: bonus distruzione; 
+  1aa2:0c8b: livello completato
+  1aa2:0d8b: larax e zaco 1:0 shareware version\ \if you enjoy this game\and you are willing to keep it\please; register your copy\sending a donation to\:\stefano zanobi v:gramsci 47\00015 monterotondo roma\italy\ \for donations of at least\12 dollars\
+  1aa2:0e8b: i will send you an upgraded version\of the game:\*\next versions will contain\many funny playing levels>\digital graphics>\new destructive weapons\and gadgets>\new monsters= new guardians\and much more:::
+  1aa2:0f8a: Mif you have any suggestion\contact the author:\ \support handmade software >>
+  1aa2:108b: keys\ \         player1        player2\ \left    ;    z           arrows\right   ;    x              =  \down    ;    c              =  \jump    ;    m              =  \
+  1aa2:118b: fire    ;    n              0  \esc quits game\ \press left and right keys together;\to change your weapon:\e=r; set playing screen width=\in one player game:\s; toggles background:\press down on special platforms\or telepods to activate them:
+  1aa2:128b: *\you must collect bonuses and\destroy buildings to proceed:\the central window will tell\you the number of bonus to\collect and the percentage\of buildings you must destroy\to complete the level:
+  1aa2:138b: you will start with three lives=\when you loose one= remember\that you can decide\to continue= by pressing fire or\to restart that level from start=\waiting a few seconds:\you can not reenter a level if\there are not enough bonuses\to complete it:
+  1aa2:148a: ~press 1 for one player game:\press 2 for two players game:\i; infos:\z; instructions:\r; show records:\l; italiano:\esc exits:
+  1aa2:158b: now entering level 
+  1aa2:168b: final score
+  1aa2:178b: player
+  1aa2:188b: destruction bonus; 
+  1aa2:198b: level completed
+
+=== DEFINED DATA ===
+  1920:01f1 [string]: !#$456789:;<=>?uRuntime error 
+  1aa2:008b [string]: larax e zaco versione 1:0 shareware\ \se questo gioco vi diverte\e decidete di tenerlo\siete pregati di\registrare la vostra copia\inviando un contributo a\:\stefano zanobi v:gramsci 47\00015 monterotondo roma\ \con un contributo minimo di\lire 20000
+  1aa2:018b [string]: riceverete la versione aggiornata\del gioco:\*\le prossime versioni conterranno\piu? livelli di gioco>\grafica digitalizzata>\nuove armi e nuovi gadgets per\placare ogni brama di distruzione>\nuovi mostri= nuovi guardiani e\altro ancora>
+  1aa2:028a [string]: Xper chiarimenti o suggerimenti\contattare l?autore\ \supportate il software artigianale>
+  1aa2:038b [string]: tasti\ \          gioc:1          gioc:2\ \sinistra;    z           frecce\destra  ;    x              =  \scendi  ;    c              =  \salta   ;    m              =  \
+  1aa2:048b [string]: fuoco   ;    n              0  \esc abbandona la partita\ \per cambiare bomba;\premi sinistra e destra insieme:\e=r; regola la larghezza dello\schermo= con uno schermo solo:\s; disattiva o attiva lo sfondo:\il tasto scendi attiva\le piattaforme speciali:
+  1aa2:058b [string]: *\per procedere nel gioco dovete\raccogliere bonus e= soprattutto=\far saltare in aria ogni cosa;\il riquadro centrale vi indica\il numero minimo di bonus da\raccogliere e la percentuale delle\costruzioni da distruggere per\completare il quadro:
+  1aa2:068b [string]: avete tre vite a disposizione\quando ne perdete una\potete decidere\se continuare premendo fire o\se riiniziare quel livello da capo\attendendo qualche secondo:\non potrete rientrare in gioco se\non ci sono piu?abbastanza bonus\per terminare il livello:
+  1aa2:078b [string]: premi 1 per un giocatore:\premi 2 per due giocatori:\i; informazioni:\z; istruzioni:\r; vedi records:\l; english:\esc per uscire:
+  1aa2:088b [string]: preparati per il livello 
+  1aa2:098b [string]: punteggio finale
+  1aa2:0a8a [string]: 	giocatore
+  1aa2:0b8b [string]: bonus distruzione; 
+  1aa2:0c8b [string]: livello completato
+  1aa2:0d8b [string]: larax e zaco 1:0 shareware version\ \if you enjoy this game\and you are willing to keep it\please; register your copy\sending a donation to\:\stefano zanobi v:gramsci 47\00015 monterotondo roma\italy\ \for donations of at least\12 dollars\
+  1aa2:0e8b [string]: i will send you an upgraded version\of the game:\*\next versions will contain\many funny playing levels>\digital graphics>\new destructive weapons\and gadgets>\new monsters= new guardians\and much more:::
+  1aa2:0f8a [string]: Mif you have any suggestion\contact the author:\ \support handmade software >>
+  1aa2:108b [string]: keys\ \         player1        player2\ \left    ;    z           arrows\right   ;    x              =  \down    ;    c              =  \jump    ;    m              =  \
+  1aa2:118b [string]: fire    ;    n              0  \esc quits game\ \press left and right keys together;\to change your weapon:\e=r; set playing screen width=\in one player game:\s; toggles background:\press down on special platforms\or telepods to activate them:
+  1aa2:128b [string]: *\you must collect bonuses and\destroy buildings to proceed:\the central window will tell\you the number of bonus to\collect and the percentage\of buildings you must destroy\to complete the level:
+  1aa2:138b [string]: you will start with three lives=\when you loose one= remember\that you can decide\to continue= by pressing fire or\to restart that level from start=\waiting a few seconds:\you can not reenter a level if\there are not enough bonuses\to complete it:
+  1aa2:148a [string]: ~press 1 for one player game:\press 2 for two players game:\i; infos:\z; instructions:\r; show records:\l; italiano:\esc exits:
+  1aa2:158b [string]: now entering level 
+  1aa2:168b [string]: final score
+  1aa2:178b [string]: player
+  1aa2:188b [string]: destruction bonus; 
+  1aa2:198b [string]: level completed
+  1aa2:1ac4 [undefined2]: 0x0
+  1aa2:1aca [undefined2]: 0x0
+  1aa2:1acc [undefined2]: 0x0
+  1aa2:1ace [undefined2]: 0x0
+  1aa2:1ad0 [undefined2]: 0x0
+  1aa2:1ad8 [undefined2]: 0x0
+  1aa2:1adc [undefined2]: 0x0
+  1aa2:1ae0 [undefined2]: 0x0
+  1aa2:1ae4 [undefined2]: 0x0
+  1aa2:1aea [undefined2]: 0x0
+  1aa2:1aec [undefined2]: 0x0
+  1aa2:1aee [undefined2]: 0x0
+  1aa2:1af0 [undefined2]: 0x0
+  1aa2:1af2 [undefined2]: 0x0
+  1aa2:1af4 [undefined2]: 0x0
+  1aa2:1af6 [undefined2]: 0x0
+  1aa2:1af8 [undefined2]: 0x0
+  1aa2:1afc [undefined2]: 0x0
+  1aa2:c69e [undefined4]: null
+  2000:b0f4 [undefined2]: null
+  2000:b0f6 [undefined2]: null
+  2000:b0f8 [undefined2]: null
+  2000:b0fa [undefined2]: null
+  2000:b0fc [undefined2]: null
+  2000:b0fe [undefined2]: null
+  2000:b100 [undefined2]: null
+  2000:b102 [undefined2]: null
+  2000:b104 [undefined2]: null
+  2000:b106 [undefined4]: null
+  2000:b10a [undefined4]: null
+  2000:b10e [undefined2]: null
+  HEADER::00000000 [OLD_IMAGE_DOS_HEADER]: null
+  HEADER::0000001c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000020 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000024 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000028 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000002c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000030 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000034 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000038 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000003c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000040 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000044 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000048 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000004c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000050 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000054 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000058 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000005c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000060 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000064 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000068 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000006c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000070 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000074 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000078 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000007c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000080 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000084 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000088 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000008c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000090 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000094 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000098 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000009c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000a0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000a4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000a8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000ac [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000b0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000b4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000b8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000bc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000c0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000c4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000c8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000cc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000d0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000d4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000d8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000dc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000e0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000e4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000e8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000ec [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000f0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000f4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000f8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000000fc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000100 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000104 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000108 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000010c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000110 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000114 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000118 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000011c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000120 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000124 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000128 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000012c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000130 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000134 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000138 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000013c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000140 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000144 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000148 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000014c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000150 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000154 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000158 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000015c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000160 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000164 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000168 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000016c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000170 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000174 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000178 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000017c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000180 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000184 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000188 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000018c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000190 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000194 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000198 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000019c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001a0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001a4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001a8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001ac [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001b0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001b4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001b8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001bc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001c0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001c4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001c8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001cc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001d0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001d4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001d8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001dc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001e0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001e4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001e8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001ec [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001f0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001f4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001f8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000001fc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000200 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000204 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000208 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000020c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000210 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000214 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000218 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000021c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000220 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000224 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000228 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000022c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000230 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000234 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000238 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000023c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000240 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000244 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000248 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000024c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000250 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000254 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000258 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000025c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000260 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000264 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000268 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000026c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000270 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000274 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000278 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000027c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000280 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000284 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000288 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000028c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000290 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000294 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000298 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000029c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002a0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002a4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002a8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002ac [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002b0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002b4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002b8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002bc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002c0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002c4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002c8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002cc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002d0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002d4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002d8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002dc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002e0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002e4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002e8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002ec [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002f0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002f4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002f8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000002fc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000300 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000304 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000308 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000030c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000310 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000314 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000318 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000031c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000320 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000324 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000328 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000032c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000330 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000334 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000338 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000033c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000340 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000344 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000348 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000034c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000350 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000354 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000358 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000035c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000360 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000364 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000368 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000036c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000370 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000374 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000378 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000037c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000380 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000384 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000388 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000038c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000390 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000394 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000398 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000039c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003a0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003a4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003a8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003ac [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003b0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003b4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003b8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003bc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003c0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003c4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003c8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003cc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003d0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003d4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003d8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003dc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003e0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003e4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003e8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003ec [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003f0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003f4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003f8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000003fc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000400 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000404 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000408 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000040c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000410 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000414 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000418 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000041c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000420 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000424 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000428 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000042c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000430 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000434 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000438 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000043c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000440 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000444 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000448 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000044c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000450 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000454 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000458 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000045c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000460 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000464 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000468 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000046c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000470 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000474 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000478 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000047c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000480 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000484 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000488 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000048c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000490 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000494 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000498 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000049c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004a0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004a4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004a8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004ac [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004b0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004b4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004b8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004bc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004c0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004c4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004c8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004cc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004d0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004d4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004d8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004dc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004e0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004e4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004e8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004ec [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004f0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004f4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004f8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000004fc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000500 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000504 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000508 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000050c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000510 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000514 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000518 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000051c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000520 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000524 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000528 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000052c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000530 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000534 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000538 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000053c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000540 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000544 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000548 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000054c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000550 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000554 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000558 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000055c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000560 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000564 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000568 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000056c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000570 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000574 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000578 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000057c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000580 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000584 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000588 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000058c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000590 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000594 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000598 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000059c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005a0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005a4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005a8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005ac [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005b0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005b4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005b8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005bc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005c0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005c4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005c8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005cc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005d0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005d4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005d8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005dc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005e0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005e4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005e8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005ec [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005f0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005f4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005f8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000005fc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000600 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000604 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000608 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000060c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000610 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000614 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000618 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000061c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000620 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000624 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000628 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000062c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000630 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000634 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000638 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000063c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000640 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000644 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000648 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000064c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000650 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000654 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000658 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000065c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000660 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000664 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000668 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000066c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000670 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000674 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000678 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000067c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000680 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000684 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000688 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000068c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000690 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000694 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000698 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000069c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006a0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006a4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006a8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006ac [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006b0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006b4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006b8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006bc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006c0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006c4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006c8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006cc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006d0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006d4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006d8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006dc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006e0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006e4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006e8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006ec [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006f0 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006f4 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006f8 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::000006fc [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000700 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000704 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000708 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000070c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000710 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000714 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000718 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000071c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000720 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000724 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000728 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000072c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000730 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000734 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000738 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000073c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000740 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000744 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000748 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000074c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000750 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000754 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000758 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::0000075c [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000760 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000764 [OLD_IMAGE_DOS_RELOC]: null
+  HEADER::00000768 [OLD_IMAGE_DOS_RELOC]: null
+
+=== SYMBOLS ===
+  entry at 1000:7783 (type: Function)
+  thunk_FUN_184a_060b at 184a:04f8 (type: Function)
+  thunk_FUN_184a_060b at 184a:04ff (type: Function)

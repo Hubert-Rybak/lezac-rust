@@ -1,0 +1,81 @@
+// ================================================
+// Function: FUN_1000_2361 at 1000:2361
+// ================================================
+
+void __cdecl16near FUN_1000_2361(void)
+
+{
+  bool bVar1;
+  char cVar2;
+  undefined1 uVar3;
+  int iVar4;
+  undefined2 uVar5;
+  undefined2 unaff_DS;
+  
+  FUN_1920_04df();
+  if (*(char *)0x79f8 != '\x01') {
+    FUN_18ac_05dc(0x234b,0x1920);
+    iVar4 = FUN_1920_04a2();
+    if (iVar4 != 0) {
+      FUN_1000_00a3(1);
+    }
+    *(undefined1 *)0x79f8 = 1;
+  }
+  uVar5 = 0x1920;
+  if (*(char *)0x208c == '\x01') {
+    FUN_1000_2226(&stack0xfffe,0,1,0x14,3,1);
+  }
+LAB_1000_23a8:
+  do {
+    FUN_1000_030b(0x2355,uVar5);
+    FUN_1000_2226(&stack0xfffe,1,0,0x4d,8,8);
+    bVar1 = false;
+    while (cVar2 = FUN_184a_02fd(), cVar2 != '\0') {
+      uVar3 = FUN_184a_030f();
+      *(undefined1 *)0x2058 = uVar3;
+    }
+    while( true ) {
+      uVar5 = 0x184a;
+      uVar3 = FUN_184a_030f();
+      *(undefined1 *)0x2058 = uVar3;
+      if (*(char *)0x2058 == '1') {
+        FUN_1000_2079(&stack0xfffe);
+        *(undefined1 *)0x79b8 = 1;
+        bVar1 = true;
+      }
+      if (*(char *)0x2058 == '2') {
+        FUN_1000_2079(&stack0xfffe);
+        *(undefined1 *)0x79b8 = 2;
+        bVar1 = true;
+      }
+      if (*(char *)0x2058 == 'i') {
+        FUN_1000_2079(&stack0xfffe);
+        FUN_1000_2226(&stack0xfffe,0,1,0x14,3,1);
+        goto LAB_1000_23a8;
+      }
+      if (*(char *)0x2058 == 'z') {
+        FUN_1000_2079(&stack0xfffe);
+        FUN_1000_2226(&stack0xfffe,0,1,0x14,7,4);
+        goto LAB_1000_23a8;
+      }
+      if (*(char *)0x2058 == 'r') {
+        FUN_1000_2079(&stack0xfffe);
+        FUN_1000_20ac(&stack0xfffe);
+        goto LAB_1000_23a8;
+      }
+      if (*(char *)0x2058 == 'l') break;
+      if (*(char *)0x2058 == '\x1b') {
+        bVar1 = true;
+        *(undefined1 *)0x79b8 = 0;
+      }
+      if (bVar1) {
+        return;
+      }
+    }
+    FUN_1000_2079(&stack0xfffe);
+    *(byte *)0x79cc = *(byte *)0x79cc ^ 1;
+  } while( true );
+}
+
+
+

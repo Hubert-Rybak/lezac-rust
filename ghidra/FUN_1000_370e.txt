@@ -1,0 +1,189 @@
+// ================================================
+// Function: FUN_1000_370e at 1000:370e
+// ================================================
+
+void FUN_1000_370e(undefined1 *param_1,char param_2,char param_3,int param_4)
+
+{
+  uint uVar1;
+  bool bVar2;
+  bool bVar3;
+  bool bVar4;
+  bool bVar5;
+  bool bVar6;
+  char cVar7;
+  int iVar8;
+  int iVar9;
+  uint uVar10;
+  uint uVar11;
+  int iVar12;
+  uint *puVar13;
+  uint *puVar14;
+  undefined2 uVar15;
+  undefined2 unaff_DS;
+  int *local_20;
+  int local_12;
+  int local_10;
+  uint *local_e;
+  uint *local_c;
+  int local_a;
+  uint *local_8;
+  
+  FUN_1920_04df();
+  uVar1 = *(uint *)((int)*(undefined4 *)0x6612 + param_4 * 2);
+  iVar12 = *(int *)0xc204;
+  if ((uVar1 & 0x8000) == 0) {
+    if (uVar1 < 0x4000) {
+      local_a = param_4 * 2;
+      local_c = (uint *)(local_a + iVar12 * -2);
+      local_8 = local_c + -1;
+      local_e = (uint *)(local_a + -2);
+      *param_1 = 0;
+      local_10 = 2;
+      local_12 = 2;
+      do {
+        bVar6 = true;
+        bVar2 = false;
+        bVar3 = false;
+        bVar4 = false;
+        bVar5 = false;
+        uVar15 = (undefined2)((ulong)*(undefined4 *)0x6612 >> 0x10);
+        iVar8 = local_10;
+        puVar14 = local_8;
+        do {
+          iVar9 = local_12;
+          puVar13 = local_8;
+          if (*puVar14 == uVar1) {
+            bVar6 = false;
+            bVar2 = true;
+            uVar15 = (undefined2)((ulong)*(undefined4 *)0x6612 >> 0x10);
+            break;
+          }
+          puVar14 = puVar14 + 1;
+          iVar8 = iVar8 + -1;
+        } while (iVar8 != 0);
+        do {
+          iVar8 = local_12;
+          puVar14 = local_c;
+          if (*puVar13 == uVar1) {
+            bVar6 = false;
+            bVar4 = true;
+            uVar15 = (undefined2)((ulong)*(undefined4 *)0x6612 >> 0x10);
+            break;
+          }
+          iVar9 = iVar9 + -1;
+          puVar13 = puVar13 + iVar12;
+        } while (iVar9 != 0);
+        do {
+          iVar9 = local_10;
+          puVar13 = local_e;
+          if (*puVar14 == uVar1) {
+            bVar6 = false;
+            bVar5 = true;
+            uVar15 = (undefined2)((ulong)*(undefined4 *)0x6612 >> 0x10);
+            break;
+          }
+          iVar8 = iVar8 + -1;
+          puVar14 = puVar14 + iVar12;
+        } while (iVar8 != 0);
+        do {
+          if (*puVar13 == uVar1) {
+            bVar6 = false;
+            bVar3 = true;
+            break;
+          }
+          iVar9 = iVar9 + -1;
+          puVar13 = puVar13 + 1;
+        } while (iVar9 != 0);
+        if (bVar2) {
+          local_8 = local_8 + -iVar12;
+          local_c = local_c + -iVar12;
+          local_12 = local_12 + 1;
+        }
+        if (bVar3) {
+          local_e = local_e + iVar12;
+          local_a = local_a + iVar12 * 2;
+          local_12 = local_12 + 1;
+        }
+        if (bVar4) {
+          local_8 = local_8 + -1;
+          local_e = local_e + -1;
+          local_10 = local_10 + 1;
+        }
+        if (bVar5) {
+          local_c = local_c + 1;
+          local_a = local_a + 2;
+          local_10 = local_10 + 1;
+        }
+      } while (!bVar6);
+      puVar14 = local_8 + iVar12 + 1;
+      local_c = local_c + iVar12 + -1;
+      iVar8 = local_a + iVar12 * -2 + -2;
+      if (*(uint *)0x2080 < 0xfa) {
+        *(int *)0x2080 = *(int *)0x2080 + 1;
+        iVar9 = *(int *)0x2080 * 0xf;
+        _local_20 = (int *)CONCAT22(unaff_DS,(undefined2 *)(iVar9 + 0x6611));
+        *_local_20 = (int)puVar14;
+        *(int *)(iVar9 + 0x6613) = iVar8;
+        *(uint *)(iVar9 + 0x6615) = uVar1 | 0x8000;
+        *(undefined1 *)(iVar9 + 0x6619) = 0;
+        *(undefined1 *)(iVar9 + 0x661a) = 0;
+        *(char *)(iVar9 + 0x6617) = param_3;
+        *(char *)(iVar9 + 0x6618) = param_2;
+        uVar10 = (int)param_2 >> 0xf;
+        uVar11 = (int)param_3 >> 0xf;
+        *(int *)(iVar9 + 0x661b) =
+             (((int)param_3 ^ uVar11) - uVar11) + (((int)param_2 ^ uVar10) - uVar10);
+        *(undefined1 *)(iVar9 + 0x661e) = 0;
+        *(undefined1 *)(iVar9 + 0x661d) = 0;
+        cVar7 = '\0';
+        uVar15 = (undefined2)((ulong)*(undefined4 *)0x6612 >> 0x10);
+        local_8 = puVar14;
+        do {
+          do {
+            if (*puVar14 == uVar1) {
+              cVar7 = cVar7 + '\x01';
+              *puVar14 = *puVar14 ^ 0x8000;
+            }
+            puVar14 = puVar14 + 1;
+          } while ((int)puVar14 <= (int)local_c);
+          puVar14 = local_8 + iVar12;
+          local_c = local_c + iVar12;
+          local_8 = puVar14;
+        } while ((int)local_c <= iVar8);
+        *(char *)(*(int *)0x2080 * 0xf + 0x661f) = cVar7 << 1;
+        *(undefined1 *)0x79c8 = 1;
+      }
+      else {
+        *(undefined1 *)0x79c8 = 0;
+      }
+    }
+    else {
+      *param_1 = 1;
+      if (*(uint *)0x207e < 0x640) {
+        *(int *)0x207e = *(int *)0x207e + 1;
+        *(uint *)((int)*(undefined4 *)0x6612 + param_4 * 2) =
+             *(uint *)((int)*(undefined4 *)0x6612 + param_4 * 2) | 0x8000;
+        iVar12 = *(int *)0x207e * 0xb;
+        _local_20 = (int *)CONCAT22(unaff_DS,(int *)(iVar12 + 0x2093));
+        *_local_20 = param_4;
+        *(char *)(iVar12 + 0x2097) = param_3;
+        *(char *)(iVar12 + 0x2098) = param_2;
+        *(undefined1 *)(iVar12 + 0x209c) = *(undefined1 *)((int)*(undefined4 *)0xc1e0 + param_4);
+        *(undefined1 *)(iVar12 + 0x2099) = 0;
+        *(undefined1 *)(iVar12 + 0x209a) = 0;
+        *(undefined1 *)(iVar12 + 0x209b) = 0;
+        *(uint *)(iVar12 + 0x2095) = uVar1 | 0x8000;
+        *(undefined1 *)(iVar12 + 0x209d) = 0;
+        *(undefined1 *)0x79c8 = 1;
+      }
+      else {
+        *(undefined1 *)0x79c8 = 0;
+      }
+    }
+  }
+  return;
+}
+
+
+
