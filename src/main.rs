@@ -1,5 +1,6 @@
 //! Larax & Zaco - Rust Port
 //! Original game by Stefano Zanobi (Zanobi Software, 1996)
+#![allow(dead_code)]
 
 mod assets;
 mod game;

@@ -125,9 +125,9 @@ pub fn draw_player(player: &Player, sprites: &SpriteSheet, sx: f32, sy: f32) {
     let px = player.x - sx;
     let py = player.y - sy;
     let si = player.sprite_index();
-    if si < sprites.num_sprites {
+    if si < sprites.num_sprites() {
         if player.facing_right { sprites.draw(si, px, py); }
-        else { sprites.draw_flipped(si, px + sprites.width as f32, py); }
+        else { sprites.draw_flipped(si, px + sprites.sprite_width(si) as f32, py); }
     } else {
         let c = if player.player_idx == 0 { Color::new(1.0, 0.2, 0.2, 1.0) } else { Color::new(0.2, 0.2, 1.0, 1.0) };
         draw_rectangle(px, py, 12.0, 16.0, c);
@@ -146,8 +146,8 @@ pub fn draw_bombs(bombs: &[Bomb], sprites: &SpriteSheet, sx: f32, sy: f32, time:
         } else {
             let flash = b.timer < 1.0 && (time * 8.0).sin() > 0.0;
             let si = b.bomb_type.sprite_index();
-            if si < sprites.num_sprites {
-                if flash { draw_rectangle(px, py, 16.0, 16.0, YELLOW); }
+            if si < sprites.num_sprites() {
+                if flash { sprites.draw_colored(si, px, py, YELLOW); }
                 else { sprites.draw(si, px, py); }
             } else {
                 let c = if flash { YELLOW } else { match b.bomb_type {
@@ -177,9 +177,9 @@ pub fn draw_monsters(monsters: &[Monster], sprites: &SpriteSheet, sx: f32, sy: f
         let px = m.x - sx;
         let py = m.y - sy;
         let si = m.sprite_index();
-        if si < sprites.num_sprites {
+        if si < sprites.num_sprites() {
             if m.facing_right { sprites.draw(si, px, py); }
-            else { sprites.draw_flipped(si, px + sprites.width as f32, py); }
+            else { sprites.draw_flipped(si, px + sprites.sprite_width(si) as f32, py); }
         } else {
             let c = match m.monster_type {
                 MonsterType::Walker => Color::new(0.8, 0.0, 0.8, 1.0),
@@ -200,7 +200,7 @@ pub fn draw_powerups(powerups: &[Powerup], sprites: &SpriteSheet, sx: f32, sy: f
         let px = p.x - sx;
         let py = p.y - sy + (time * 3.0).sin() * 2.0;
         let si = p.powerup_type.sprite_index();
-        if si < sprites.num_sprites {
+        if si < sprites.num_sprites() {
             sprites.draw(si, px, py);
         } else {
             let c = match p.powerup_type {
@@ -224,12 +224,18 @@ pub fn draw_hud(players: &[Player], level: &Level, destr_pct: f32, fonts: &Sprit
     draw_line(0.0, hy, SCREEN_W, hy, 1.0, Color::new(0.3, 0.3, 0.8, 1.0));
 
     if let Some(p) = players.first() {
-        for i in 0..p.lives.max(0) as usize { draw_text_small(fonts, "A", 4.0 + i as f32 * 10.0, hy + 28.0, GREEN); }
+        // Lives indicators
+        for i in 0..p.lives.max(0) as usize {
+            draw_text_small(fonts, "a", 4.0 + i as f32 * 10.0, hy + 28.0, GREEN);
+        }
+        // Energy bar
         draw_rectangle_lines(4.0, hy + 4.0, 100.0, 10.0, 1.0, SKYBLUE);
         let fw = (p.energy / p.max_energy) * 98.0;
         draw_rectangle(5.0, hy + 5.0, fw, 8.0, YELLOW);
+        // Score
         draw_text_small(fonts, &format!("{}", p.score), 112.0, hy + 12.0, WHITE);
 
+        // Current bomb indicator
         let bc = match p.current_bomb {
             BombType::Small => Color::new(0.4, 0.4, 0.4, 1.0),
             BombType::Medium => Color::new(0.6, 0.4, 0.2, 1.0),
@@ -241,6 +247,7 @@ pub fn draw_hud(players: &[Player], level: &Level, destr_pct: f32, fonts: &Sprit
         draw_text_small(fonts, &format!("{:2}", p.bombs[p.current_bomb as usize]), cx + 14.0, hy + 12.0, WHITE);
     }
 
+    // Bonus/destruction targets
     let bx = SCREEN_W / 2.0 + 10.0;
     draw_circle(bx + 4.0, hy + 8.0, 4.0, GOLD);
     draw_text_small(fonts, &format!("{:02}", level.bonus_target), bx + 12.0, hy + 10.0, WHITE);
@@ -249,34 +256,60 @@ pub fn draw_hud(players: &[Player], level: &Level, destr_pct: f32, fonts: &Sprit
     draw_text_small(fonts, &format!("{}%", destr_pct as u32), bx + 34.0, hy + 24.0, YELLOW);
 }
 
+/// Draw text using the font sprite sheet.
+/// The font file contains:
+///   Sprites 0-25:  10x10 large/shadow font (a-z)
+///   Sprites 26-51: 8x8 small font (a-z)
+///   Sprites 52-61: 8x8 small font (0-9)
+///   Sprites 62-67: 8x8 small font (punctuation: . , - = ! ')
+/// Text input uses lowercase internally. The game's original strings use
+/// custom encoding: ':' = '.', ';' = ',', '>' = '!', '?' = "'", '=' = '-',
+/// '<' = some char. Our Rust port uses normal characters.
 pub fn draw_text_small(fonts: &SpriteSheet, text: &str, x: f32, y: f32, color: Color) {
-    let cw = fonts.width as f32;
     let mut cx = x;
     for ch in text.chars() {
         if let Some(fi) = char_to_font_index(ch) {
-            if fi < fonts.num_sprites {
-                draw_texture_ex(&fonts.textures[fi], cx, y, color, DrawTextureParams::default());
+            if fi < fonts.num_sprites() {
+                fonts.draw_colored(fi, cx, y, color);
+                cx += fonts.sprite_width(fi) as f32;
+            } else {
+                cx += 8.0;
             }
+        } else {
+            cx += 8.0; // space
         }
-        cx += cw;
     }
 }
 
 fn char_to_font_index(ch: char) -> Option<usize> {
-    let ch = ch.to_ascii_uppercase();
-    match ch {
-        'A'..='Z' => Some((ch as u8 - b'A') as usize),
-        '0'..='9' => Some(26 + (ch as u8 - b'0') as usize),
+    let ch_lower = ch.to_ascii_lowercase();
+    match ch_lower {
+        'a'..='z' => Some(26 + (ch_lower as u8 - b'a') as usize),
+        '0'..='9' => Some(52 + (ch_lower as u8 - b'0') as usize),
+        '.' => Some(62),
+        ',' => Some(63),
+        '-' => Some(64),
+        '=' => Some(64), // same as '-' in original
+        '!' => Some(66),
+        '\'' => Some(67),
+        ':' => Some(62), // ':' = '.' in original encoding
+        ';' => Some(63), // ';' = ',' in original encoding
+        '>' => Some(66), // '>' = '!' in original encoding
+        '?' => Some(67), // '?' = '\'' in original encoding
+        '*' | '#' | '+' => Some(65), // misc symbol
+        '%' => Some(65),
         ' ' => None,
-        '.' => Some(36), ',' => Some(37), ':' => Some(38), ';' => Some(39),
-        '!' => Some(40), '?' => Some(41), '-' => Some(42), '*' => Some(43),
-        '>' => Some(44), '=' => Some(46), '%' => Some(47),
         _ => None,
     }
 }
 
 pub fn draw_text_centered(fonts: &SpriteSheet, text: &str, y: f32, color: Color) {
-    let tw = text.len() as f32 * fonts.width as f32;
+    // Calculate text width considering variable-width sprites
+    let tw: f32 = text.chars().map(|ch| {
+        if let Some(fi) = char_to_font_index(ch) {
+            if fi < fonts.num_sprites() { fonts.sprite_width(fi) as f32 } else { 8.0 }
+        } else { 8.0 }
+    }).sum();
     draw_text_small(fonts, text, (SCREEN_W - tw) / 2.0, y, color);
 }
 
@@ -292,18 +325,18 @@ pub fn draw_menu(fonts: &SpriteSheet, english: bool) {
     if english {
         draw_text_centered(fonts, "PRESS 1 FOR ONE PLAYER GAME.", 80.0, WHITE);
         draw_text_centered(fonts, "PRESS 2 FOR TWO PLAYERS GAME.", 92.0, WHITE);
-        draw_text_centered(fonts, "I: INFOS.", 104.0, YELLOW);
-        draw_text_centered(fonts, "Z: INSTRUCTIONS.", 116.0, YELLOW);
-        draw_text_centered(fonts, "R: SHOW RECORDS.", 128.0, YELLOW);
-        draw_text_centered(fonts, "L: ITALIANO.", 140.0, SKYBLUE);
+        draw_text_centered(fonts, "I. INFOS.", 104.0, YELLOW);
+        draw_text_centered(fonts, "Z. INSTRUCTIONS.", 116.0, YELLOW);
+        draw_text_centered(fonts, "R. SHOW RECORDS.", 128.0, YELLOW);
+        draw_text_centered(fonts, "L. ITALIANO.", 140.0, SKYBLUE);
         draw_text_centered(fonts, "ESC EXITS.", 156.0, Color::new(0.7, 0.7, 0.7, 1.0));
     } else {
         draw_text_centered(fonts, "PREMI 1 PER UN GIOCATORE.", 80.0, WHITE);
         draw_text_centered(fonts, "PREMI 2 PER DUE GIOCATORI.", 92.0, WHITE);
-        draw_text_centered(fonts, "I: INFORMAZIONI.", 104.0, YELLOW);
-        draw_text_centered(fonts, "Z: ISTRUZIONI.", 116.0, YELLOW);
-        draw_text_centered(fonts, "R: VEDI RECORDS.", 128.0, YELLOW);
-        draw_text_centered(fonts, "L: ENGLISH.", 140.0, SKYBLUE);
+        draw_text_centered(fonts, "I. INFORMAZIONI.", 104.0, YELLOW);
+        draw_text_centered(fonts, "Z. ISTRUZIONI.", 116.0, YELLOW);
+        draw_text_centered(fonts, "R. VEDI RECORDS.", 128.0, YELLOW);
+        draw_text_centered(fonts, "L. ENGLISH.", 140.0, SKYBLUE);
         draw_text_centered(fonts, "ESC PER USCIRE.", 156.0, Color::new(0.7, 0.7, 0.7, 1.0));
     }
 }

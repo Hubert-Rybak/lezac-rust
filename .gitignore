@@ -1,1 +1,6 @@
 target/
+*.png
+*.html
+test_assets.sh
+decode_caro.py
+
