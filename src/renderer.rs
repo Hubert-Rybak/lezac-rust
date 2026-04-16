@@ -1,7 +1,7 @@
 //! Rendering: tiles, sprites, HUD, backgrounds
 
 use macroquad::prelude::*;
-use crate::assets::{Palette, SpriteSheet, Background};
+use crate::assets::{Palette, SpriteSheet, Background, TitleCard};
 use crate::level::Level;
 use crate::player::{Player, Bomb, BombType, Debris};
 use crate::monsters::{Monster, MonsterType, Powerup, PowerupType};
@@ -81,39 +81,28 @@ pub fn draw_background(bg: &Background, scroll_x: f32, _palette: &Palette) {
     }
 }
 
-pub fn draw_tiles(level: &Level, sx: f32, sy: f32, palette: &Palette, show_bg: bool) {
+/// Draw level tiles by indexing BOMOMIMK.SPR with the tile value.
+/// Each non-zero tile byte directly names a sprite in BOMOMIMK.SPR (per GAME_SPEC §7).
+/// Falls back to a palette-indexed rectangle if the sprite index is missing.
+pub fn draw_tiles(level: &Level, sx: f32, sy: f32, palette: &Palette, tiles: &SpriteSheet, _show_bg: bool) {
     let stx = (sx / TILE_SIZE) as i32;
     let sty = (sy / TILE_SIZE) as i32;
     let etx = stx + (SCREEN_W / TILE_SIZE) as i32 + 2;
     let ety = sty + (PLAY_HEIGHT / TILE_SIZE) as i32 + 2;
 
-    if show_bg {
-        for ty in sty..ety {
-            for tx in stx..etx {
-                if tx >= 0 && ty >= 0 {
-                    let t = level.bg_tile_at(tx as usize, ty as usize);
-                    if t != 0 {
-                        let c = tile_color(t, palette);
-                        let bc = Color::new(c.r * 0.6, c.g * 0.6, c.b * 0.6, c.a);
-                        draw_rectangle(tx as f32 * TILE_SIZE - sx, ty as f32 * TILE_SIZE - sy, TILE_SIZE, TILE_SIZE, bc);
-                    }
-                }
-            }
-        }
-    }
-
     for ty in sty..ety {
         for tx in stx..etx {
-            if tx >= 0 && ty >= 0 {
-                let t = level.tile_at(tx as usize, ty as usize);
-                if t != 0 {
-                    let c = tile_color(t, palette);
-                    let px = tx as f32 * TILE_SIZE - sx;
-                    let py = ty as f32 * TILE_SIZE - sy;
-                    draw_rectangle(px, py, TILE_SIZE, TILE_SIZE, c);
-                    draw_rectangle_lines(px, py, TILE_SIZE, TILE_SIZE, 1.0,
-                        Color::new(c.r * 0.8, c.g * 0.8, c.b * 0.8, 0.3));
-                }
+            if tx < 0 || ty < 0 { continue; }
+            let t = level.tile_at(tx as usize, ty as usize);
+            if t == 0 { continue; }
+            let px = tx as f32 * TILE_SIZE - sx;
+            let py = ty as f32 * TILE_SIZE - sy;
+            let si = t as usize;
+            if si < tiles.num_sprites() && tiles.sprite_width(si) > 0 {
+                tiles.draw(si, px, py);
+            } else {
+                let c = tile_color(t, palette);
+                draw_rectangle(px, py, TILE_SIZE, TILE_SIZE, c);
             }
         }
     }
@@ -313,9 +302,13 @@ pub fn draw_text_centered(fonts: &SpriteSheet, text: &str, y: f32, color: Color)
     draw_text_small(fonts, text, (SCREEN_W - tw) / 2.0, y, color);
 }
 
-pub fn draw_title_screen(tex: &Texture2D) {
-    draw_texture_ex(tex, 0.0, 0.0, WHITE, DrawTextureParams {
-        dest_size: Some(vec2(SCREEN_W, SCREEN_H)),
+/// Draw the CARO.CAR title card. It's 132x64, drawn centered horizontally at
+/// x=94 (per the original game binary), near the top of the screen.
+pub fn draw_title_screen(card: &TitleCard) {
+    let dx = (SCREEN_W - card.width as f32) / 2.0;
+    let dy = 12.0;
+    draw_texture_ex(&card.texture, dx, dy, WHITE, DrawTextureParams {
+        dest_size: Some(vec2(card.width as f32, card.height as f32)),
         ..Default::default()
     });
 }

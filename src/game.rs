@@ -20,7 +20,7 @@ pub struct Game {
     pub two_player: bool,
     pub current_level: usize,
     pub levels: Vec<Level>,
-    pub monster_defs: Vec<MonsterDef>,
+    pub monster_defs: Vec<MonsterTemplate>,
     pub players: Vec<Player>,
     pub monsters: Vec<Monster>,
     pub bombs: Vec<Bomb>,
@@ -41,7 +41,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(levels: Vec<Level>, monster_defs: Vec<MonsterDef>, records: Vec<crate::assets::HighScore>) -> Self {
+    pub fn new(levels: Vec<Level>, monster_defs: Vec<MonsterTemplate>, records: Vec<crate::assets::HighScore>) -> Self {
         Game {
             state: GameState::TitleScreen, english: false, two_player: false,
             current_level: 0, levels, monster_defs,
@@ -74,10 +74,9 @@ impl Game {
         self.find_start_positions();
         if let Some(p) = self.players.get_mut(0) { p.respawn(self.p1_start_x, self.p1_start_y); }
         if let Some(p) = self.players.get_mut(1) { p.respawn(self.p2_start_x, self.p2_start_y); }
-        let md = &self.monster_defs[li % self.monster_defs.len()];
-        self.monsters = spawn_monsters(&self.levels[li], md, li);
+        self.monsters = spawn_monsters(&self.levels[li], &self.monster_defs, li);
         self.bombs.clear(); self.debris.clear(); self.powerups.clear();
-        self.initial_solid_count = self.levels[li].count_solid_tiles();
+        self.initial_solid_count = self.levels[li].initial_variant_count as usize;
         self.scroll_x = 0.0; self.scroll_y = 0.0;
     }
 
@@ -229,7 +228,7 @@ impl Game {
             }
         }
 
-        let cs = self.levels[li].count_solid_tiles();
+        let cs = self.levels[li].count_variant_tiles() as usize;
         if self.initial_solid_count > 0 { self.current_destruction_pct = (1.0 - cs as f32/self.initial_solid_count as f32)*100.0; }
 
         let lev = &self.levels[li];

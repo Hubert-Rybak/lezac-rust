@@ -118,14 +118,7 @@ async fn main() {
                 draw_text_centered(&fonts, "PRESS ANY KEY", 180.0, Color::new(0.5, 0.5, 0.5, 1.0));
             }
             GameState::LevelIntro => {
-                clear_background(Color::new(0.15, 0.15, 0.0, 1.0));
-                for y in (0..200).step_by(2) {
-                    for x in (0..320).step_by(2) {
-                        if (x + y) % 4 == 0 {
-                            draw_rectangle(x as f32, y as f32, 1.0, 1.0, Color::new(0.2, 0.2, 0.0, 0.3));
-                        }
-                    }
-                }
+                clear_background(BLACK);
                 let msg = if game.english { format!("NOW ENTERING LEVEL {}", game.current_level + 1) }
                           else { format!("PREPARATI PER IL LIVELLO {}", game.current_level + 1) };
                 draw_text_centered(&fonts, &msg, 95.0, WHITE);
@@ -138,7 +131,7 @@ async fn main() {
                 }
                 let li = game.current_level;
                 if li < game.levels.len() {
-                    draw_tiles(&game.levels[li], game.scroll_x, game.scroll_y, &palette, game.show_background);
+                    draw_tiles(&game.levels[li], game.scroll_x, game.scroll_y, &palette, &misc_sprites, game.show_background);
                     draw_powerups(&game.powerups, &misc_sprites, game.scroll_x, game.scroll_y, game.game_time);
                     draw_bombs(&game.bombs, &misc_sprites, game.scroll_x, game.scroll_y, game.game_time);
                     draw_monsters(&game.monsters, &misc_sprites, game.scroll_x, game.scroll_y);

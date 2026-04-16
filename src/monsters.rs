@@ -1,4 +1,4 @@
-use crate::level::{Level, MonsterDef};
+use crate::level::{Level, MonsterTemplate};
 use crate::player::Player;
 
 const TILE_SIZE: f32 = 8.0;
@@ -164,25 +164,20 @@ impl Powerup {
     }
 }
 
-pub fn spawn_monsters(level: &Level, mdef: &MonsterDef, level_idx: usize) -> Vec<Monster> {
+/// Spawn monsters from the level's monster table (per LIVELS.SCH spawn records).
+/// Each spawn is 30 raw bytes; we use byte 0 as tile X, byte 2 as tile Y,
+/// and byte 4 as a template index. If there are no spawns we leave the level empty.
+pub fn spawn_monsters(level: &Level, templates: &[MonsterTemplate], _level_idx: usize) -> Vec<Monster> {
     let mut monsters = Vec::new();
-    let num = (mdef.data[0] as usize % 6) + 2;
-    let mut spawns: Vec<(f32,f32)> = Vec::new();
-    for y in 1..level.height.saturating_sub(1) {
-        for x in 1..level.width.saturating_sub(1) {
-            if !level.is_solid(x, y) && level.is_solid(x, y+1) && x as f32 * TILE_SIZE > 100.0 {
-                spawns.push((x as f32*TILE_SIZE, (y as f32*TILE_SIZE)-16.0));
-            }
-        }
-    }
-    if !spawns.is_empty() {
-        let step = spawns.len() / (num+1).max(1);
-        for i in 0..num {
-            let idx = ((i+1)*step).min(spawns.len()-1);
-            let (sx, sy) = spawns[idx];
-            let mt = MonsterType::from_id(mdef.data[(i*3+1) % 57] + level_idx as u8);
-            monsters.push(Monster::new(sx, sy, mt));
-        }
+    for s in &level.monsters {
+        let tx = s.raw[0] as usize;
+        let ty = s.raw[2] as usize;
+        let tidx = s.raw[4] as usize;
+        let mt = MonsterType::from_id(tidx as u8);
+        let sx = tx as f32 * TILE_SIZE;
+        let sy = (ty as f32 * TILE_SIZE) - 16.0;
+        let _ = templates; // templates inform sprite_base/speed later
+        monsters.push(Monster::new(sx, sy, mt));
     }
     monsters
 }
