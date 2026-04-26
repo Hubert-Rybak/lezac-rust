@@ -7,11 +7,23 @@ use crate::renderer::{SCREEN_W, PLAY_HEIGHT};
 
 const TILE_SIZE: f32 = 8.0;
 const EXPLOSION_DURATION: f32 = 0.5;
+/// 70 Hz frames between crack stages 0x76 → 0x77 → 0x78 → 0x79 → cleared.
+const COLLAPSE_FRAME_TIME: f32 = 4.0 / 70.0;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum GameState {
     TitleScreen, MainMenu, Instructions, Records, Info,
     LevelIntro, Playing, LevelComplete, GameOver, FinalScore,
+}
+
+/// A tile mid-collapse. Drives the 0x76→0x79 crack animation per §11.2 by
+/// stamping the next stage tile value back into the level each frame.
+#[derive(Clone, Copy)]
+pub struct Collapsing {
+    pub tx: usize,
+    pub ty: usize,
+    pub stage: u8,    // 0x76, 0x77, 0x78, 0x79
+    pub timer: f32,
 }
 
 pub struct Game {
@@ -26,6 +38,7 @@ pub struct Game {
     pub bombs: Vec<Bomb>,
     pub debris: Vec<Debris>,
     pub powerups: Vec<Powerup>,
+    pub collapsing: Vec<Collapsing>,
     pub scroll_x: f32,
     pub scroll_y: f32,
     pub initial_solid_count: usize,
@@ -46,7 +59,7 @@ impl Game {
             state: GameState::TitleScreen, english: false, two_player: false,
             current_level: 0, levels, monster_defs,
             players: Vec::new(), monsters: Vec::new(), bombs: Vec::new(),
-            debris: Vec::new(), powerups: Vec::new(),
+            debris: Vec::new(), powerups: Vec::new(), collapsing: Vec::new(),
             scroll_x: 0.0, scroll_y: 0.0,
             initial_solid_count: 0, current_destruction_pct: 0.0,
             state_timer: 0.0, game_time: 0.0,
@@ -76,6 +89,7 @@ impl Game {
         if let Some(p) = self.players.get_mut(1) { p.respawn(self.p2_start_x, self.p2_start_y); }
         self.monsters = spawn_monsters(&self.levels[li], &self.monster_defs, li);
         self.bombs.clear(); self.debris.clear(); self.powerups.clear();
+        self.collapsing.clear();
         // Pre-spawn pickups from the level's bonus table (per LIVELS.SCH §1.3
         // and bonus types §6.4). Each record's raw[0]/raw[2] are tile coords
         // and raw[4] is the bonus id.
@@ -196,6 +210,7 @@ impl Game {
         }
         for (ex,ey,bt) in &expl { self.process_explosion(*ex,*ey,*bt,li); }
         self.bombs.retain(|b| !b.exploding || b.explosion_timer > 0.0);
+        self.update_collapsing(li, dt);
 
         let ps: Vec<Player> = self.players.clone();
         for m in &mut self.monsters {
@@ -324,8 +339,9 @@ impl Game {
     }
 
     /// 4-connected flood fill over a building group: every reachable tile
-    /// whose attribute equals `attr` is cleared, awarding score and spawning
-    /// debris. Mirrors the rectangle-expansion algorithm in FUN_1000_370e.
+    /// whose attribute equals `attr` is replaced with crack stage 0x76 and
+    /// queued for collapse animation. Mirrors the rectangle-expansion
+    /// algorithm in FUN_1000_370e (with §11.2 crack states).
     fn flood_fill_destroy(&mut self, li: usize, sx: usize, sy: usize, attr: u16) {
         let (w, h) = {
             let lev = &self.levels[li];
@@ -340,7 +356,9 @@ impl Game {
             let lev = &mut self.levels[li];
             if lev.attrs[idx] != attr || lev.tiles[idx] == 0 { continue; }
             let old = lev.tiles[idx];
-            lev.tiles[idx] = 0;
+            // Stamp first crack state; collapse animator advances it further.
+            lev.tiles[idx] = 0x76;
+            self.collapsing.push(Collapsing { tx: x, ty: y, stage: 0x76, timer: COLLAPSE_FRAME_TIME });
             destroyed += 1;
             for _ in 0..2 {
                 let a = macroquad::rand::gen_range(0.0f32, std::f32::consts::TAU);
@@ -362,5 +380,26 @@ impl Game {
                 p.score = p.score.saturating_add(destroyed * 10);
             }
         }
+    }
+
+    /// Advance collapse animation: stage 0x76 → 0x77 → 0x78 → 0x79 → cleared.
+    fn update_collapsing(&mut self, li: usize, dt: f32) {
+        if self.collapsing.is_empty() { return; }
+        let lev = &mut self.levels[li];
+        let mut still_alive = Vec::with_capacity(self.collapsing.len());
+        for mut c in self.collapsing.drain(..) {
+            c.timer -= dt;
+            if c.timer > 0.0 { still_alive.push(c); continue; }
+            c.timer = COLLAPSE_FRAME_TIME;
+            c.stage = c.stage.saturating_add(1);
+            let idx = c.ty * lev.width + c.tx;
+            if c.stage > 0x79 {
+                lev.tiles[idx] = 0;
+            } else {
+                lev.tiles[idx] = c.stage;
+                still_alive.push(c);
+            }
+        }
+        self.collapsing = still_alive;
     }
 }

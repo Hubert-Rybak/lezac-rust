@@ -23,16 +23,21 @@ pub struct Monster {
     pub anim_frame: usize, pub anim_timer: f32,
     pub patrol_timer: f32,
     pub start_x: f32, pub start_y: f32,
+    /// Sprite-sheet base index pulled from GRAN.MST (or fallback per type).
+    pub sprite_base: usize,
+    /// Per-frame movement speed in pixels (from GRAN.MST byte 1, fallback per type).
+    pub speed: f32,
 }
 
 impl Monster {
-    pub fn new(x: f32, y: f32, mt: MonsterType) -> Self {
+    pub fn new(x: f32, y: f32, mt: MonsterType, sprite_base: usize, speed: f32) -> Self {
         Monster {
-            x, y, vx: mt.speed(), vy: 0.0,
+            x, y, vx: speed, vy: 0.0,
             monster_type: mt, health: mt.health(),
             alive: true, facing_right: true,
             anim_frame: 0, anim_timer: 0.0,
             patrol_timer: 0.0, start_x: x, start_y: y,
+            sprite_base, speed,
         }
     }
 
@@ -70,7 +75,7 @@ impl Monster {
                         if d < nd { nd = d; tx = p.x; }
                     }
                 }
-                let s = self.monster_type.speed();
+                let s = self.speed;
                 if tx > self.x+2.0 { self.vx = s; self.facing_right = true; }
                 else if tx < self.x-2.0 { self.vx = -s; self.facing_right = false; }
                 else { self.vx = 0.0; }
@@ -110,7 +115,7 @@ impl Monster {
     }
 
     pub fn take_damage(&mut self, amount: f32) { self.health -= amount; if self.health <= 0.0 { self.alive = false; } }
-    pub fn sprite_index(&self) -> usize { self.monster_type.sprite_base() + self.anim_frame }
+    pub fn sprite_index(&self) -> usize { self.sprite_base + self.anim_frame }
     pub fn collides_with_player(&self, p: &Player) -> bool {
         if !self.alive || !p.alive { return false; }
         self.x < p.x+12.0 && self.x+14.0 > p.x && self.y < p.y+16.0 && self.y+14.0 > p.y
@@ -178,8 +183,10 @@ impl Powerup {
 }
 
 /// Spawn monsters from the level's monster table (per LIVELS.SCH spawn records).
-/// Each spawn is 30 raw bytes; we use byte 0 as tile X, byte 2 as tile Y,
-/// and byte 4 as a template index. If there are no spawns we leave the level empty.
+/// Each spawn is 30 raw bytes; raw[0]/raw[2] are tile coords and raw[4] picks
+/// a GRAN.MST template (sprite base + speed). We blend the template's
+/// sprite_base/speed with the per-type defaults so unknown templates still
+/// look reasonable.
 pub fn spawn_monsters(level: &Level, templates: &[MonsterTemplate], _level_idx: usize) -> Vec<Monster> {
     let mut monsters = Vec::new();
     for s in &level.monsters {
@@ -189,8 +196,15 @@ pub fn spawn_monsters(level: &Level, templates: &[MonsterTemplate], _level_idx: 
         let mt = MonsterType::from_id(tidx as u8);
         let sx = tx as f32 * TILE_SIZE;
         let sy = (ty as f32 * TILE_SIZE) - 16.0;
-        let _ = templates; // templates inform sprite_base/speed later
-        monsters.push(Monster::new(sx, sy, mt));
+        let (sprite_base, speed) = if !templates.is_empty() {
+            let t = &templates[tidx % templates.len()];
+            // GRAN.MST byte 1 is a 0..255 speed value; rescale to ~0.2..1.5 px/frame.
+            let sp = (t.speed.max(1) as f32 / 8.0).clamp(0.2, 1.5);
+            (t.sprite_base as usize, sp)
+        } else {
+            (mt.sprite_base(), mt.speed())
+        };
+        monsters.push(Monster::new(sx, sy, mt, sprite_base, speed));
     }
     monsters
 }
