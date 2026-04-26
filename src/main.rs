@@ -45,8 +45,9 @@ async fn main() {
     let levels = load_levels(&format!("{}/LIVELS.SCH", ap));
     let monster_defs = load_monster_defs(&format!("{}/GRAN.MST", ap));
     let records = load_records(&format!("{}/RECS.DAT", ap));
+    let sound = sound::SoundManager::load(&format!("{}/PROEFS.SON", ap)).await;
     let renderer = Renderer::new();
-    let mut game = Game::new(levels, monster_defs, records);
+    let mut game = Game::new(levels, monster_defs, records, sound);
 
     /// 70 Hz fixed step matches the original VGA vsync timing (GAME_SPEC §8.1).
     const STEP: f32 = 1.0 / 70.0;
@@ -150,6 +151,7 @@ async fn main() {
                         draw_player(p, &player_sprites, game.scroll_x, game.scroll_y);
                     }
                     draw_debris(&game.debris, &palette, game.scroll_x, game.scroll_y);
+                    draw_screen_width_mask(game.screen_width_factor);
                     draw_hud(&game.players, &game.levels[li], game.current_destruction_pct, &fonts, &player_sprites, &palette, game.two_player);
                     for p in &game.players {
                         if !p.alive && p.lives > 0 && p.respawn_timer <= 0.0 {

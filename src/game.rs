@@ -41,7 +41,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(levels: Vec<Level>, monster_defs: Vec<MonsterTemplate>, records: Vec<crate::assets::HighScore>) -> Self {
+    pub fn new(levels: Vec<Level>, monster_defs: Vec<MonsterTemplate>, records: Vec<crate::assets::HighScore>, sound: SoundManager) -> Self {
         Game {
             state: GameState::TitleScreen, english: false, two_player: false,
             current_level: 0, levels, monster_defs,
@@ -51,7 +51,7 @@ impl Game {
             initial_solid_count: 0, current_destruction_pct: 0.0,
             state_timer: 0.0, game_time: 0.0,
             show_background: true, screen_width_factor: 1.0,
-            records, sound: SoundManager::new(),
+            records, sound,
             p1_start_x: 40.0, p1_start_y: 40.0,
             p2_start_x: 80.0, p2_start_y: 40.0,
         }
@@ -162,6 +162,15 @@ impl Game {
         let i2 = if self.two_player { PlayerInput::read_player2() } else { PlayerInput::default() };
         if macroquad::input::is_key_pressed(macroquad::input::KeyCode::Escape) { self.state = GameState::MainMenu; return; }
         if macroquad::input::is_key_pressed(macroquad::input::KeyCode::S) { self.show_background = !self.show_background; }
+        // §11.4: E narrows the visible width, R widens it (single-player only).
+        if !self.two_player {
+            if macroquad::input::is_key_pressed(macroquad::input::KeyCode::E) {
+                self.screen_width_factor = (self.screen_width_factor - 0.1).max(0.5);
+            }
+            if macroquad::input::is_key_pressed(macroquad::input::KeyCode::R) {
+                self.screen_width_factor = (self.screen_width_factor + 0.1).min(1.0);
+            }
+        }
 
         let inputs = [i1, i2];
         let mut nb = Vec::new();
@@ -268,6 +277,18 @@ impl Game {
         let damage = bt.damage();
         let cx = ((ex+8.0)/TILE_SIZE) as i32;
         let cy = ((ey+8.0)/TILE_SIZE) as i32;
+
+        // GAME_SPEC §4.4: read the attribute at the bomb tile. If it's a
+        // building group (< 0x4000) flood-fill all connected tiles sharing
+        // that attribute and clear them. Then fall back to a radius blast for
+        // any remaining tiles inside the explosion sphere.
+        if cx >= 0 && cy >= 0 && (cx as usize) < self.levels[li].width && (cy as usize) < self.levels[li].height {
+            let attr = self.levels[li].attr_at(cx as usize, cy as usize);
+            if attr != 0 && attr < 0x4000 {
+                self.flood_fill_destroy(li, cx as usize, cy as usize, attr);
+            }
+        }
+
         let tr = (radius/TILE_SIZE) as i32 + 1;
         for ty in (cy-tr)..=(cy+tr) {
             for tx in (cx-tr)..=(cx+tr) {
@@ -299,6 +320,47 @@ impl Game {
         for p in &mut self.players {
             let dx = p.x-ex; let dy = p.y-ey; let dist = (dx*dx+dy*dy).sqrt();
             if dist <= radius { p.take_damage(damage*0.5*(1.0-dist/radius)); }
+        }
+    }
+
+    /// 4-connected flood fill over a building group: every reachable tile
+    /// whose attribute equals `attr` is cleared, awarding score and spawning
+    /// debris. Mirrors the rectangle-expansion algorithm in FUN_1000_370e.
+    fn flood_fill_destroy(&mut self, li: usize, sx: usize, sy: usize, attr: u16) {
+        let (w, h) = {
+            let lev = &self.levels[li];
+            (lev.width, lev.height)
+        };
+        if self.levels[li].attr_at(sx, sy) != attr { return; }
+        let mut stack: Vec<(usize, usize)> = Vec::with_capacity(64);
+        stack.push((sx, sy));
+        let mut destroyed = 0u32;
+        while let Some((x, y)) = stack.pop() {
+            let idx = y * w + x;
+            let lev = &mut self.levels[li];
+            if lev.attrs[idx] != attr || lev.tiles[idx] == 0 { continue; }
+            let old = lev.tiles[idx];
+            lev.tiles[idx] = 0;
+            destroyed += 1;
+            for _ in 0..2 {
+                let a = macroquad::rand::gen_range(0.0f32, std::f32::consts::TAU);
+                let s = macroquad::rand::gen_range(1.0f32, 3.0);
+                self.debris.push(Debris {
+                    x: x as f32 * TILE_SIZE + 4.0,
+                    y: y as f32 * TILE_SIZE + 4.0,
+                    vx: a.cos()*s, vy: a.sin()*s - 2.0,
+                    color: old, life: macroquad::rand::gen_range(0.5f32, 1.5),
+                });
+            }
+            if x + 1 < w { stack.push((x + 1, y)); }
+            if x > 0 { stack.push((x - 1, y)); }
+            if y + 1 < h { stack.push((x, y + 1)); }
+            if y > 0 { stack.push((x, y - 1)); }
+        }
+        if destroyed > 0 {
+            if let Some(p) = self.players.first_mut() {
+                p.score = p.score.saturating_add(destroyed * 10);
+            }
         }
     }
 }

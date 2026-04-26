@@ -214,7 +214,12 @@ pub fn draw_hud(players: &[Player], level: &Level, destr_pct: f32, fonts: &Sprit
     draw_line(0.0, hy, SCREEN_W, hy, 1.0, Color::new(0.3, 0.3, 0.8, 1.0));
 
     if let Some(p) = players.first() {
-        // Lives: sprite 90 (heart/life, 12x10 per spec §3.4) repeated.
+        // Sprite 89 is the "LIVES" label (21x7); fall back silently if absent.
+        let lives_label = 89;
+        if lives_label < player_sprites.num_sprites() {
+            player_sprites.draw(lives_label, 4.0, hy + 18.0);
+        }
+        // Sprite 90: heart/life icon (12x10), repeated once per life.
         let life_sprite = 90;
         let lw = if life_sprite < player_sprites.num_sprites() {
             player_sprites.sprite_width(life_sprite) as f32 + 1.0
@@ -222,37 +227,51 @@ pub fn draw_hud(players: &[Player], level: &Level, destr_pct: f32, fonts: &Sprit
         for i in 0..p.lives.max(0) as usize {
             let lx = 4.0 + i as f32 * lw;
             if life_sprite < player_sprites.num_sprites() {
-                player_sprites.draw(life_sprite, lx, hy + 26.0);
+                player_sprites.draw(life_sprite, lx, hy + 28.0);
             } else {
                 draw_text_small(fonts, "a", lx, hy + 28.0, GREEN);
             }
         }
-        // Energy bar
-        draw_rectangle_lines(4.0, hy + 4.0, 100.0, 10.0, 1.0, SKYBLUE);
-        let fw = (p.energy / p.max_energy) * 98.0;
-        draw_rectangle(5.0, hy + 5.0, fw, 8.0, YELLOW);
-        // Score
-        draw_text_small(fonts, &format!("{}", p.score), 112.0, hy + 12.0, WHITE);
 
-        // Current bomb indicator
-        let bc = match p.current_bomb {
-            BombType::Small => Color::new(0.4, 0.4, 0.4, 1.0),
-            BombType::Medium => Color::new(0.6, 0.4, 0.2, 1.0),
-            BombType::Large => Color::new(0.8, 0.2, 0.2, 1.0),
-            BombType::Super => Color::new(0.2, 0.8, 0.2, 1.0),
-        };
+        // Energy: sprite 79 left endcap, 80 fill, 81 right endcap (best-effort).
+        // If the sprite slots aren't where we expect we just draw a coloured bar.
+        let bar_x = 50.0;
+        let bar_y = hy + 4.0;
+        let bar_w = 60.0;
+        if 79 < player_sprites.num_sprites() { player_sprites.draw(79, bar_x, bar_y); }
+        else { draw_rectangle_lines(bar_x, bar_y, bar_w, 6.0, 1.0, SKYBLUE); }
+        let fw = (p.energy / p.max_energy) * (bar_w - 2.0);
+        draw_rectangle(bar_x + 1.0, bar_y + 1.0, fw, 4.0, YELLOW);
+
+        // Score
+        draw_text_small(fonts, &format!("{:06}", p.score), 50.0, hy + 14.0, WHITE);
+
+        // Current bomb indicator: try sprite (53 + bomb_idx) for the icon.
         let cx = SCREEN_W / 2.0 - 30.0;
-        draw_rectangle(cx, hy + 4.0, 12.0, 12.0, bc);
-        draw_text_small(fonts, &format!("{:2}", p.bombs[p.current_bomb as usize]), cx + 14.0, hy + 12.0, WHITE);
+        let bomb_sprite = 53 + p.current_bomb as usize;
+        if bomb_sprite < player_sprites.num_sprites() {
+            player_sprites.draw(bomb_sprite, cx, hy + 2.0);
+        } else {
+            let bc = match p.current_bomb {
+                BombType::Small => Color::new(0.4, 0.4, 0.4, 1.0),
+                BombType::Medium => Color::new(0.6, 0.4, 0.2, 1.0),
+                BombType::Large => Color::new(0.8, 0.2, 0.2, 1.0),
+                BombType::Super => Color::new(0.2, 0.8, 0.2, 1.0),
+            };
+            draw_rectangle(cx, hy + 4.0, 12.0, 12.0, bc);
+        }
+        draw_text_small(fonts, &format!("{:2}", p.bombs[p.current_bomb as usize]), cx + 18.0, hy + 12.0, WHITE);
     }
 
-    // Bonus/destruction targets
-    let bx = SCREEN_W / 2.0 + 10.0;
-    draw_circle(bx + 4.0, hy + 8.0, 4.0, GOLD);
-    draw_text_small(fonts, &format!("{:02}", level.bonus_target), bx + 12.0, hy + 10.0, WHITE);
-    draw_text_small(fonts, "*", bx, hy + 24.0, ORANGE);
-    draw_text_small(fonts, &format!("{:02}", level.destruction_pct), bx + 12.0, hy + 24.0, WHITE);
-    draw_text_small(fonts, &format!("{}%", destr_pct as u32), bx + 34.0, hy + 24.0, YELLOW);
+    // Bonus/destruction targets — sprite 85/86 if available as decoration.
+    let bx = SCREEN_W / 2.0 + 14.0;
+    if 85 < player_sprites.num_sprites() { player_sprites.draw(85, bx, hy + 4.0); }
+    else { draw_circle(bx + 4.0, hy + 8.0, 4.0, GOLD); }
+    draw_text_small(fonts, &format!("{:02}", level.bonus_target), bx + 22.0, hy + 8.0, WHITE);
+    if 86 < player_sprites.num_sprites() { player_sprites.draw(86, bx, hy + 18.0); }
+    else { draw_text_small(fonts, "*", bx, hy + 24.0, ORANGE); }
+    draw_text_small(fonts, &format!("{:02}", level.destruction_pct), bx + 22.0, hy + 22.0, WHITE);
+    draw_text_small(fonts, &format!("{}%", destr_pct as u32), bx + 44.0, hy + 22.0, YELLOW);
 }
 
 /// Draw text using the font sprite sheet.
@@ -314,6 +333,17 @@ pub fn draw_text_centered(fonts: &SpriteSheet, text: &str, y: f32, color: Color)
 
 /// Draw the CARO.CAR title card. It's 132x64, drawn centered horizontally at
 /// x=94 (per the original game binary), near the top of the screen.
+/// Mask off the left and right of the playfield so the visible width
+/// matches `factor` (1.0 = full 320 px, 0.5 = half). Per GAME_SPEC §11.4.
+pub fn draw_screen_width_mask(factor: f32) {
+    if factor >= 0.999 { return; }
+    let visible = (SCREEN_W * factor).round();
+    let bar = ((SCREEN_W - visible) * 0.5).max(0.0);
+    if bar <= 0.0 { return; }
+    draw_rectangle(0.0, 0.0, bar, PLAY_HEIGHT, BLACK);
+    draw_rectangle(SCREEN_W - bar, 0.0, bar, PLAY_HEIGHT, BLACK);
+}
+
 pub fn draw_title_screen(card: &TitleCard) {
     let dx = (SCREEN_W - card.width as f32) / 2.0;
     let dy = 12.0;
