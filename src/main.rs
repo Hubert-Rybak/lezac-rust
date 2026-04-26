@@ -48,9 +48,20 @@ async fn main() {
     let renderer = Renderer::new();
     let mut game = Game::new(levels, monster_defs, records);
 
+    /// 70 Hz fixed step matches the original VGA vsync timing (GAME_SPEC §8.1).
+    const STEP: f32 = 1.0 / 70.0;
+    let mut accum = 0.0_f32;
+
     loop {
-        let dt = get_frame_time().min(0.05);
-        game.update(dt);
+        accum += get_frame_time().min(0.25);
+        // Cap to a few steps to avoid spiral-of-death after a stall.
+        let mut steps = 0;
+        while accum >= STEP && steps < 6 {
+            game.update(STEP);
+            accum -= STEP;
+            steps += 1;
+        }
+        if steps == 6 { accum = 0.0; }
 
         renderer.begin();
         match game.state {
@@ -139,7 +150,7 @@ async fn main() {
                         draw_player(p, &player_sprites, game.scroll_x, game.scroll_y);
                     }
                     draw_debris(&game.debris, &palette, game.scroll_x, game.scroll_y);
-                    draw_hud(&game.players, &game.levels[li], game.current_destruction_pct, &fonts, &palette, game.two_player);
+                    draw_hud(&game.players, &game.levels[li], game.current_destruction_pct, &fonts, &player_sprites, &palette, game.two_player);
                     for p in &game.players {
                         if !p.alive && p.lives > 0 && p.respawn_timer <= 0.0 {
                             let m = if game.english { "PRESS FIRE TO CONTINUE" } else { "PREMI FUOCO" };

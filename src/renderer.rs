@@ -196,6 +196,7 @@ pub fn draw_powerups(powerups: &[Powerup], sprites: &SpriteSheet, sx: f32, sy: f
                 PowerupType::Present => GOLD,
                 PowerupType::HotDog => ORANGE,
                 PowerupType::FirstAid => RED,
+                PowerupType::Invincibility => Color::new(1.0, 1.0, 1.0, 1.0),
                 PowerupType::YellowBombBox => YELLOW,
                 PowerupType::GreenBombBox => GREEN,
                 PowerupType::JollyCloud => SKYBLUE,
@@ -207,15 +208,24 @@ pub fn draw_powerups(powerups: &[Powerup], sprites: &SpriteSheet, sx: f32, sy: f
     }
 }
 
-pub fn draw_hud(players: &[Player], level: &Level, destr_pct: f32, fonts: &SpriteSheet, _palette: &Palette, _two_player: bool) {
+pub fn draw_hud(players: &[Player], level: &Level, destr_pct: f32, fonts: &SpriteSheet, player_sprites: &SpriteSheet, _palette: &Palette, _two_player: bool) {
     let hy = PLAY_HEIGHT;
     draw_rectangle(0.0, hy, SCREEN_W, HUD_HEIGHT, Color::new(0.0, 0.0, 0.3, 1.0));
     draw_line(0.0, hy, SCREEN_W, hy, 1.0, Color::new(0.3, 0.3, 0.8, 1.0));
 
     if let Some(p) = players.first() {
-        // Lives indicators
+        // Lives: sprite 90 (heart/life, 12x10 per spec §3.4) repeated.
+        let life_sprite = 90;
+        let lw = if life_sprite < player_sprites.num_sprites() {
+            player_sprites.sprite_width(life_sprite) as f32 + 1.0
+        } else { 10.0 };
         for i in 0..p.lives.max(0) as usize {
-            draw_text_small(fonts, "a", 4.0 + i as f32 * 10.0, hy + 28.0, GREEN);
+            let lx = 4.0 + i as f32 * lw;
+            if life_sprite < player_sprites.num_sprites() {
+                player_sprites.draw(life_sprite, lx, hy + 26.0);
+            } else {
+                draw_text_small(fonts, "a", lx, hy + 28.0, GREEN);
+            }
         }
         // Energy bar
         draw_rectangle_lines(4.0, hy + 4.0, 100.0, 10.0, 1.0, SKYBLUE);

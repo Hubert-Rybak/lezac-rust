@@ -76,6 +76,17 @@ impl Game {
         if let Some(p) = self.players.get_mut(1) { p.respawn(self.p2_start_x, self.p2_start_y); }
         self.monsters = spawn_monsters(&self.levels[li], &self.monster_defs, li);
         self.bombs.clear(); self.debris.clear(); self.powerups.clear();
+        // Pre-spawn pickups from the level's bonus table (per LIVELS.SCH §1.3
+        // and bonus types §6.4). Each record's raw[0]/raw[2] are tile coords
+        // and raw[4] is the bonus id.
+        for b in &self.levels[li].bonuses {
+            let tx = b.raw[0] as f32 * TILE_SIZE;
+            let ty = (b.raw[2] as f32 * TILE_SIZE) - 8.0;
+            let pt = PowerupType::from_bonus_id(b.raw[4]);
+            let mut p = Powerup::new(tx, ty, pt);
+            p.vy = 0.0;
+            self.powerups.push(p);
+        }
         self.initial_solid_count = self.levels[li].initial_variant_count as usize;
         self.scroll_x = 0.0; self.scroll_y = 0.0;
     }
@@ -195,8 +206,21 @@ impl Game {
                     match pu.powerup_type {
                         PowerupType::HotDog => { p.energy = (p.energy + p.max_energy/3.0).min(p.max_energy); }
                         PowerupType::FirstAid => { p.energy = p.max_energy; }
-                        PowerupType::YellowBombBox => { p.bombs[0]+=20; p.bombs[1]+=10; p.bombs[2]+=5; }
-                        PowerupType::GreenBombBox => { p.has_super_bombs = true; p.bombs[3]+=5; }
+                        // Bonus type 4: 46 frames at 70 Hz ≈ 0.66 seconds.
+                        PowerupType::Invincibility => { p.invincible_timer = p.invincible_timer.max(46.0 / 70.0); }
+                        PowerupType::YellowBombBox => {
+                            // Bonus type 5: random qty of random types.
+                            for _ in 0..3 {
+                                let slot = macroquad::rand::gen_range(0u32, 4) as usize;
+                                let qty = macroquad::rand::gen_range(2i32, 8);
+                                p.bombs[slot] += qty;
+                            }
+                        }
+                        PowerupType::GreenBombBox => {
+                            // Bonus type 6: larger supply incl. super bombs.
+                            p.has_super_bombs = true;
+                            p.bombs[0]+=15; p.bombs[1]+=10; p.bombs[2]+=8; p.bombs[3]+=5;
+                        }
                         PowerupType::JollyCloud => {
                             for j in 0..3 {
                                 bonus_pus.push(Powerup::new(p.x + macroquad::rand::gen_range(-40.0f32,40.0), p.y-30.0-j as f32*20.0, PowerupType::Present));

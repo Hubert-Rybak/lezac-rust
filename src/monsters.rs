@@ -118,22 +118,35 @@ impl Monster {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-pub enum PowerupType { Present, HotDog, FirstAid, YellowBombBox, GreenBombBox, JollyCloud, BigDiamond }
+pub enum PowerupType { Present, HotDog, FirstAid, Invincibility, YellowBombBox, GreenBombBox, JollyCloud, BigDiamond }
 impl PowerupType {
     pub fn random() -> Self {
-        match macroquad::rand::gen_range(0u32, 7) {
+        match macroquad::rand::gen_range(0u32, 8) {
             0 => Self::Present, 1 => Self::HotDog, 2 => Self::FirstAid,
-            3 => Self::YellowBombBox, 4 => Self::GreenBombBox, 5 => Self::JollyCloud,
-            _ => Self::BigDiamond,
+            3 => Self::Invincibility, 4 => Self::YellowBombBox, 5 => Self::GreenBombBox,
+            6 => Self::JollyCloud, _ => Self::BigDiamond,
+        }
+    }
+    /// From a 7-byte BonusSpawn record (bonus type in raw[4]) per spec §6.4.
+    pub fn from_bonus_id(b: u8) -> Self {
+        match b {
+            2 => Self::FirstAid,        // full energy
+            3 => Self::HotDog,          // +33 energy
+            4 => Self::Invincibility,   // 46 frames invuln
+            5 => Self::YellowBombBox,   // random bombs
+            6 => Self::GreenBombBox,    // larger bomb supply
+            _ => Self::Present,
         }
     }
     pub fn points(&self) -> u32 {
         match self { Self::Present=>2000, Self::HotDog=>1500, Self::FirstAid=>1000,
+            Self::Invincibility=>2500,
             Self::YellowBombBox=>3000, Self::GreenBombBox=>1000, Self::JollyCloud=>2000, Self::BigDiamond=>5000 }
     }
     pub fn sprite_index(&self) -> usize {
         match self { Self::Present=>50, Self::HotDog=>51, Self::FirstAid=>52,
-            Self::YellowBombBox=>53, Self::GreenBombBox=>54, Self::JollyCloud=>55, Self::BigDiamond=>56 }
+            Self::Invincibility=>53,
+            Self::YellowBombBox=>54, Self::GreenBombBox=>55, Self::JollyCloud=>56, Self::BigDiamond=>57 }
     }
 }
 
