@@ -150,6 +150,7 @@ async fn main() {
                     for p in &game.players {
                         draw_player(p, &player_sprites, game.scroll_x, game.scroll_y);
                     }
+                    draw_collapsing(&game.collapsing, &misc_sprites, game.scroll_x, game.scroll_y);
                     draw_debris(&game.debris, &palette, game.scroll_x, game.scroll_y);
                     draw_screen_width_mask(game.screen_width_factor);
                     draw_hud(&game.players, &game.levels[li], game.current_destruction_pct, &fonts, &player_sprites, &palette, game.two_player);

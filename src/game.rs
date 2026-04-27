@@ -9,6 +9,9 @@ const TILE_SIZE: f32 = 8.0;
 const EXPLOSION_DURATION: f32 = 0.5;
 /// 70 Hz frames between crack stages 0x76 → 0x77 → 0x78 → 0x79 → cleared.
 const COLLAPSE_FRAME_TIME: f32 = 4.0 / 70.0;
+/// Per-frame gravity for falling rubble (in pixels/frame at 70 Hz).
+const RUBBLE_GRAVITY: f32 = 0x40 as f32 / 256.0;
+const RUBBLE_MAX_FALL: f32 = 0x7FF as f32 / 256.0;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum GameState {
@@ -16,14 +19,18 @@ pub enum GameState {
     LevelIntro, Playing, LevelComplete, GameOver, FinalScore,
 }
 
-/// A tile mid-collapse. Drives the 0x76→0x79 crack animation per §11.2 by
-/// stamping the next stage tile value back into the level each frame.
+/// A piece of falling rubble. Removed from the level grid (so collisions and
+/// destruction% see it as gone) and rendered as an overlay sprite that cycles
+/// through crack stages 0x76→0x79 while accumulating vertical velocity per
+/// §11.2. Lands when it hits a solid tile beneath, or vanishes off the map.
 #[derive(Clone, Copy)]
 pub struct Collapsing {
     pub tx: usize,
     pub ty: usize,
-    pub stage: u8,    // 0x76, 0x77, 0x78, 0x79
+    pub stage: u8,        // 0x76, 0x77, 0x78, 0x79
     pub timer: f32,
+    pub vy: f32,
+    pub y_offset: f32,
 }
 
 pub struct Game {
@@ -216,7 +223,7 @@ impl Game {
         for m in &mut self.monsters {
             m.update(&self.levels[li], &ps, dt);
             for p in &mut self.players {
-                if m.collides_with_player(p) { p.take_damage(m.monster_type.damage() * dt * 30.0); }
+                if m.collides_with_player(p) { p.take_damage(m.damage * dt * 30.0); }
             }
         }
 
@@ -356,9 +363,14 @@ impl Game {
             let lev = &mut self.levels[li];
             if lev.attrs[idx] != attr || lev.tiles[idx] == 0 { continue; }
             let old = lev.tiles[idx];
-            // Stamp first crack state; collapse animator advances it further.
-            lev.tiles[idx] = 0x76;
-            self.collapsing.push(Collapsing { tx: x, ty: y, stage: 0x76, timer: COLLAPSE_FRAME_TIME });
+            // Clear from the level immediately so collisions and destruction%
+            // see it as gone; the overlay carries the visual until it lands.
+            lev.tiles[idx] = 0;
+            self.collapsing.push(Collapsing {
+                tx: x, ty: y,
+                stage: 0x76, timer: COLLAPSE_FRAME_TIME,
+                vy: 0.0, y_offset: 0.0,
+            });
             destroyed += 1;
             for _ in 0..2 {
                 let a = macroquad::rand::gen_range(0.0f32, std::f32::consts::TAU);
@@ -382,23 +394,48 @@ impl Game {
         }
     }
 
-    /// Advance collapse animation: stage 0x76 → 0x77 → 0x78 → 0x79 → cleared.
+    /// Advance collapse animation and falling physics. Each piece accumulates
+    /// gravity and sub-pixel vertical offset; the crack stage cycles 0x76→0x79
+    /// over time. The piece is removed when it lands on a solid tile, drops
+    /// off the bottom of the level, or finishes its crack cycle in mid-air.
     fn update_collapsing(&mut self, li: usize, dt: f32) {
         if self.collapsing.is_empty() { return; }
-        let lev = &mut self.levels[li];
+        let lev_h = self.levels[li].height;
         let mut still_alive = Vec::with_capacity(self.collapsing.len());
         for mut c in self.collapsing.drain(..) {
+            // Stage timer advances the visible crack value.
             c.timer -= dt;
-            if c.timer > 0.0 { still_alive.push(c); continue; }
-            c.timer = COLLAPSE_FRAME_TIME;
-            c.stage = c.stage.saturating_add(1);
-            let idx = c.ty * lev.width + c.tx;
-            if c.stage > 0x79 {
-                lev.tiles[idx] = 0;
-            } else {
-                lev.tiles[idx] = c.stage;
-                still_alive.push(c);
+            if c.timer <= 0.0 && c.stage < 0x79 {
+                c.stage += 1;
+                c.timer = COLLAPSE_FRAME_TIME;
             }
+            // Apply gravity; clamp to terminal velocity.
+            c.vy = (c.vy + RUBBLE_GRAVITY).min(RUBBLE_MAX_FALL);
+            c.y_offset += c.vy;
+            let cur_row = c.ty + (c.y_offset / TILE_SIZE) as usize;
+            let next_row = cur_row + 1;
+            let landed = next_row >= lev_h
+                || self.levels[li].is_solid(c.tx, next_row);
+            // Damage entities standing in the falling cell.
+            let py = c.ty as f32 * TILE_SIZE + c.y_offset;
+            let px = c.tx as f32 * TILE_SIZE;
+            for p in &mut self.players {
+                if p.alive
+                    && p.x + 12.0 > px && p.x < px + TILE_SIZE
+                    && p.y + 16.0 > py && p.y < py + TILE_SIZE {
+                    p.take_damage(2.0);
+                }
+            }
+            for m in &mut self.monsters {
+                if m.alive
+                    && m.x + 14.0 > px && m.x < px + TILE_SIZE
+                    && m.y + 14.0 > py && m.y < py + TILE_SIZE {
+                    m.take_damage(8.0);
+                }
+            }
+            if landed { continue; }
+            if c.stage >= 0x79 && c.timer <= 0.0 { continue; }
+            still_alive.push(c);
         }
         self.collapsing = still_alive;
     }

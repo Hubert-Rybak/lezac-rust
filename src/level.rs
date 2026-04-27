@@ -149,12 +149,19 @@ fn finalize(
     }
 }
 
-/// GRAN.MST: [count:u8] then behavior templates. Format per template is not fully documented;
-/// we keep raw bytes and expose them to AI for a sprite base + animation hints.
+/// GRAN.MST: [count:u8] then behavior templates. The full per-field format is
+/// not documented; we expose the bytes we have confidence in (sprite base,
+/// speed, damage, flags) plus the raw blob for any future deeper mapping.
 #[derive(Clone, Debug)]
 pub struct MonsterTemplate {
     pub sprite_base: u8,
     pub speed: u8,
+    /// Per-frame contact damage scalar. Sourced from GRAN.MST byte 5.
+    pub damage: u8,
+    /// Bit 0 = ignores gravity (floater). Sourced from GRAN.MST byte 0; the
+    /// original engine tested similar flags before applying gravity in
+    /// FUN_1000_5102.
+    pub flags: u8,
     pub raw: Vec<u8>,
 }
 
@@ -171,7 +178,9 @@ pub fn load_monster_defs(path: &str) -> Vec<MonsterTemplate> {
         let raw = body[s..e].to_vec();
         let sprite_base = raw.get(3).copied().unwrap_or(0x10 + i as u8 * 3);
         let speed = raw.get(1).copied().unwrap_or(2);
-        out.push(MonsterTemplate { sprite_base, speed, raw });
+        let damage = raw.get(5).copied().unwrap_or(8);
+        let flags = raw.get(0).copied().unwrap_or(0);
+        out.push(MonsterTemplate { sprite_base, speed, damage, flags, raw });
     }
     if out.is_empty() { default_templates() } else { out }
 }
@@ -180,6 +189,8 @@ fn default_templates() -> Vec<MonsterTemplate> {
     (0..7).map(|i| MonsterTemplate {
         sprite_base: 0x10 + i * 3,
         speed: 2,
+        damage: 8,
+        flags: 0,
         raw: vec![],
     }).collect()
 }

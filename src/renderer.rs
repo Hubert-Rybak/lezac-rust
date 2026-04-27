@@ -5,6 +5,7 @@ use crate::assets::{Palette, SpriteSheet, Background, TitleCard};
 use crate::level::Level;
 use crate::player::{Player, Bomb, BombType, Debris};
 use crate::monsters::{Monster, MonsterType, Powerup, PowerupType};
+use crate::game::Collapsing;
 
 pub const SCREEN_W: f32 = 320.0;
 pub const SCREEN_H: f32 = 200.0;
@@ -148,6 +149,18 @@ pub fn draw_bombs(bombs: &[Bomb], sprites: &SpriteSheet, sx: f32, sy: f32, time:
                 draw_circle(px + 8.0, py + 8.0, 6.0, c);
                 draw_line(px + 8.0, py + 2.0, px + 12.0, py - 2.0, 1.0, ORANGE);
             }
+        }
+    }
+}
+
+/// Draw falling rubble as overlay BOMOMIMK sprites at the crack-stage index.
+pub fn draw_collapsing(collapsing: &[Collapsing], tiles: &SpriteSheet, sx: f32, sy: f32) {
+    for c in collapsing {
+        let px = c.tx as f32 * TILE_SIZE - sx;
+        let py = c.ty as f32 * TILE_SIZE + c.y_offset - sy;
+        let si = c.stage as usize;
+        if si < tiles.num_sprites() {
+            tiles.draw(si, px, py);
         }
     }
 }

@@ -25,21 +25,27 @@ pub struct Monster {
     pub start_x: f32, pub start_y: f32,
     /// Sprite-sheet base index pulled from GRAN.MST (or fallback per type).
     pub sprite_base: usize,
-    /// Per-frame movement speed in pixels (from GRAN.MST byte 1, fallback per type).
+    /// Per-frame movement speed in pixels (from GRAN.MST byte 1).
     pub speed: f32,
+    /// Per-frame contact damage scalar (from GRAN.MST byte 5).
+    pub damage: f32,
+    /// Bit-flags from GRAN.MST byte 0. Bit 0 = floats (ignores gravity).
+    pub flags: u8,
 }
 
 impl Monster {
-    pub fn new(x: f32, y: f32, mt: MonsterType, sprite_base: usize, speed: f32) -> Self {
+    pub fn new(x: f32, y: f32, mt: MonsterType, sprite_base: usize, speed: f32, damage: f32, flags: u8) -> Self {
         Monster {
             x, y, vx: speed, vy: 0.0,
             monster_type: mt, health: mt.health(),
             alive: true, facing_right: true,
             anim_frame: 0, anim_timer: 0.0,
             patrol_timer: 0.0, start_x: x, start_y: y,
-            sprite_base, speed,
+            sprite_base, speed, damage, flags,
         }
     }
+    /// True when GRAN.MST flags mark this monster as floating.
+    pub fn floats(&self) -> bool { self.flags & 0x01 != 0 }
 
     pub fn update(&mut self, level: &Level, players: &[Player], dt: f32) {
         if !self.alive { return; }
@@ -48,7 +54,7 @@ impl Monster {
 
         match self.monster_type {
             MonsterType::Walker => {
-                self.vy += 0.3; if self.vy > 3.0 { self.vy = 3.0; }
+                if !self.floats() { self.vy += 0.3; if self.vy > 3.0 { self.vy = 3.0; } }
                 let nx = self.x + self.vx;
                 let tx = if self.vx > 0.0 { ((nx+15.0)/TILE_SIZE) as usize } else { (nx/TILE_SIZE) as usize };
                 let ty = (self.y/TILE_SIZE) as usize;
@@ -79,7 +85,7 @@ impl Monster {
                 if tx > self.x+2.0 { self.vx = s; self.facing_right = true; }
                 else if tx < self.x-2.0 { self.vx = -s; self.facing_right = false; }
                 else { self.vx = 0.0; }
-                self.vy += 0.3; if self.vy > 3.0 { self.vy = 3.0; }
+                if !self.floats() { self.vy += 0.3; if self.vy > 3.0 { self.vy = 3.0; } }
                 self.x += self.vx;
                 let ny = self.y + self.vy;
                 let bty = ((ny+15.0)/TILE_SIZE) as usize;
@@ -95,7 +101,7 @@ impl Monster {
             }
             MonsterType::Jumper => {
                 self.patrol_timer += dt;
-                self.vy += 0.3; if self.vy > 3.0 { self.vy = 3.0; }
+                if !self.floats() { self.vy += 0.3; if self.vy > 3.0 { self.vy = 3.0; } }
                 if self.patrol_timer > 1.5 { self.patrol_timer = 0.0; self.vy = -3.5; }
                 self.x += self.vx;
                 let tx = if self.vx > 0.0 { ((self.x+15.0)/TILE_SIZE) as usize } else { (self.x/TILE_SIZE) as usize };
@@ -196,15 +202,17 @@ pub fn spawn_monsters(level: &Level, templates: &[MonsterTemplate], _level_idx: 
         let mt = MonsterType::from_id(tidx as u8);
         let sx = tx as f32 * TILE_SIZE;
         let sy = (ty as f32 * TILE_SIZE) - 16.0;
-        let (sprite_base, speed) = if !templates.is_empty() {
+        let (sprite_base, speed, damage, flags) = if !templates.is_empty() {
             let t = &templates[tidx % templates.len()];
             // GRAN.MST byte 1 is a 0..255 speed value; rescale to ~0.2..1.5 px/frame.
             let sp = (t.speed.max(1) as f32 / 8.0).clamp(0.2, 1.5);
-            (t.sprite_base as usize, sp)
+            // GRAN.MST byte 5 is the damage scalar; rescale to ~0.2..1.5/frame.
+            let dmg = (t.damage as f32 / 16.0).clamp(0.2, 1.5);
+            (t.sprite_base as usize, sp, dmg, t.flags)
         } else {
-            (mt.sprite_base(), mt.speed())
+            (mt.sprite_base(), mt.speed(), mt.damage(), 0)
         };
-        monsters.push(Monster::new(sx, sy, mt, sprite_base, speed));
+        monsters.push(Monster::new(sx, sy, mt, sprite_base, speed, damage, flags));
     }
     monsters
 }
