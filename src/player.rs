@@ -1,13 +1,20 @@
 use crate::input::PlayerInput;
-use crate::level::Level;
+use crate::level::{Level, TILE_CEIL_MAX, TILE_SOLID_MAX};
 
 const TILE_SIZE: f32 = 8.0;
-const GRAVITY: f32 = 0.4;
-const JUMP_VEL: f32 = -4.5;
-const MOVE_SPD: f32 = 1.5;
-const MAX_FALL: f32 = 4.0;
+/// Physics constants match GAME_SPEC §13. Internally we keep float pixels per
+/// 70-Hz frame; values are derived from the original 8.8 fixed-point ints.
+const GRAVITY: f32 = 0x40 as f32 / 256.0;          // 0.25 px/frame²
+const JUMP_VEL: f32 = -(0x350 as f32) / 256.0;     // -3.3125 px/frame
+const MAX_FALL: f32 = 0x7FF as f32 / 256.0;        // ~8 px/frame
+const MOVE_ACCEL: f32 = 0x40 as f32 / 256.0;       // 0.25 px/frame²
+const MAX_MOVE: f32 = 0x400 as f32 / 256.0;        // 4 px/frame
+const FRICTION: f32 = 0x30 as f32 / 256.0;         // ~0.19 px/frame²
 const PW: f32 = 12.0;
 const PH: f32 = 16.0;
+/// Special tile values (per GAME_SPEC §3.2 / §11.1).
+const TILE_DROP_THROUGH: u8 = 0x27;
+const TILE_TELEPORT: u8 = 0x45;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum BombType { Small = 0, Medium = 1, Large = 2, Super = 3 }
@@ -52,6 +59,9 @@ pub struct Player {
     pub anim_frame: usize, pub anim_timer: f32,
     pub invincible_timer: f32,
     pub player_idx: usize,
+    /// Counts down a few frames during which gravity collisions are skipped
+    /// so the player can drop through 0x27 platforms.
+    pub drop_through_timer: u8,
 }
 
 impl Player {
@@ -69,6 +79,7 @@ impl Player {
             anim_frame: 0, anim_timer: 0.0,
             invincible_timer: 0.0,
             player_idx: idx,
+            drop_through_timer: 0,
         }
     }
 
@@ -82,13 +93,42 @@ impl Player {
             if self.current_bomb == BombType::Super && !self.has_super_bombs {
                 self.current_bomb = BombType::Small;
             }
+            // Treat weapon change as no-input so friction still decelerates.
+            if self.vx > FRICTION { self.vx -= FRICTION; }
+            else if self.vx < -FRICTION { self.vx += FRICTION; }
+            else { self.vx = 0.0; }
         } else {
-            if input.left { self.vx = -MOVE_SPD; self.facing_right = false; }
-            else if input.right { self.vx = MOVE_SPD; self.facing_right = true; }
+            // Acceleration / friction model (GAME_SPEC §3.2).
+            if input.left { self.vx -= MOVE_ACCEL; self.facing_right = false; }
+            else if input.right { self.vx += MOVE_ACCEL; self.facing_right = true; }
+            else if self.vx > FRICTION { self.vx -= FRICTION; }
+            else if self.vx < -FRICTION { self.vx += FRICTION; }
             else { self.vx = 0.0; }
         }
+        self.vx = self.vx.clamp(-MAX_MOVE, MAX_MOVE);
 
         if input.jump && self.on_ground { self.vy = JUMP_VEL; self.on_ground = false; }
+
+        // Drop-through and teleport on down-key (per §3.2 / §11.1).
+        if input.down && self.on_ground {
+            let cx = ((self.x + PW * 0.5) / TILE_SIZE) as i32;
+            let cy = ((self.y + PH) / TILE_SIZE) as i32;
+            if cx >= 0 && cy >= 0 {
+                let below = level.tile_at(cx as usize, cy as usize);
+                if below == TILE_DROP_THROUGH {
+                    self.drop_through_timer = 6;
+                    self.on_ground = false;
+                    self.y += 1.0;
+                } else if below == TILE_TELEPORT {
+                    if let Some((tx, ty)) = find_teleport_target(level, cx as usize, cy as usize) {
+                        self.x = tx as f32 * TILE_SIZE;
+                        self.y = (ty as f32 * TILE_SIZE) - PH;
+                        self.vx = 0.0; self.vy = 0.0;
+                    }
+                }
+            }
+        }
+
         if input.fire {
             let bi = self.current_bomb as usize;
             if self.bombs[bi] > 0 { self.bombs[bi] -= 1; place_bomb = true; }
@@ -96,18 +136,26 @@ impl Player {
 
         self.vy += GRAVITY;
         if self.vy > MAX_FALL { self.vy = MAX_FALL; }
+        if self.drop_through_timer > 0 { self.drop_through_timer -= 1; }
 
+        // Horizontal: bounce off walls (-vx/2).
         let nx = self.x + self.vx;
-        if !self.collides(nx, self.y, level) { self.x = nx; } else { self.vx = 0.0; }
+        if !self.collides(nx, self.y, level) { self.x = nx; }
+        else { self.vx = -self.vx * 0.5; }
 
+        // Vertical: bounce a little off the ground (-vy/4); back off ceiling.
         let ny = self.y + self.vy;
-        if !self.collides(self.x, ny, level) {
+        let going_down = self.vy > 0.0;
+        let drop = self.drop_through_timer > 0 && going_down;
+        if drop || !self.collides(self.x, ny, level) {
             self.y = ny; self.on_ground = false;
+        } else if going_down {
+            self.on_ground = true;
+            self.y = ((self.y + PH) / TILE_SIZE).ceil() * TILE_SIZE - PH;
+            let bounce = -self.vy * 0.25;
+            self.vy = if bounce.abs() < 0.25 { 0.0 } else { bounce };
         } else {
-            if self.vy > 0.0 {
-                self.on_ground = true;
-                self.y = ((self.y + PH) / TILE_SIZE).ceil() * TILE_SIZE - PH;
-            }
+            self.y = ((self.y / TILE_SIZE).floor() + 1.0) * TILE_SIZE;
             self.vy = 0.0;
         }
 
@@ -117,7 +165,8 @@ impl Player {
         self.y = self.y.clamp(0.0, my);
 
         self.anim_timer += dt;
-        if self.anim_timer > 0.12 {
+        let anim_step = ((4.0 - self.vx.abs()) * 0.04).max(0.05);
+        if self.anim_timer > anim_step {
             self.anim_timer = 0.0;
             if self.vx.abs() > 0.1 { self.anim_frame = (self.anim_frame + 1) % 4; }
             else { self.anim_frame = 0; }
@@ -133,7 +182,13 @@ impl Player {
         for ty in t..=b {
             for tx in l..=r {
                 if tx < 0 || ty < 0 { return true; }
-                if level.is_solid(tx as usize, ty as usize) { return true; }
+                let v = level.tile_at(tx as usize, ty as usize);
+                // 0x27 / 0x45 are activated by the down-key, not by collision.
+                if v == TILE_DROP_THROUGH || v == TILE_TELEPORT { continue; }
+                if v != 0 && v <= TILE_SOLID_MAX { return true; }
+                // (0x4D..0x52) ceiling band only blocks the upper half of the
+                // player. Standing on top of one is allowed but heads bonk.
+                if v > TILE_SOLID_MAX && v <= TILE_CEIL_MAX && ty == t { return true; }
             }
         }
         false
@@ -156,4 +211,38 @@ impl Player {
         else if self.vx.abs() > 0.1 { base + self.anim_frame }
         else { base }
     }
+}
+
+/// Resolve a 0x45 teleport tile to its destination. The original game stores
+/// pairs in the platform table (14-byte records); we look for a record whose
+/// source coords (raw[0], raw[2]) match the entry tile and return the
+/// destination (raw[4], raw[6]). If no platform record matches we fall back
+/// to the *furthest* 0x45 tile on the map, which is at least visually
+/// distinct from the source.
+fn find_teleport_target(level: &Level, sx: usize, sy: usize) -> Option<(usize, usize)> {
+    for plat in &level.platforms {
+        let psx = plat.raw[0] as usize;
+        let psy = plat.raw[2] as usize;
+        if psx == sx && psy == sy {
+            let pdx = plat.raw[4] as usize;
+            let pdy = plat.raw[6] as usize;
+            if pdx < level.width && pdy < level.height && (pdx, pdy) != (sx, sy) {
+                return Some((pdx, pdy));
+            }
+        }
+    }
+    let mut best: Option<(usize, usize, u32)> = None;
+    for (i, &t) in level.tiles.iter().enumerate() {
+        if t != TILE_TELEPORT { continue; }
+        let tx = i % level.width;
+        let ty = i / level.width;
+        if (tx, ty) == (sx, sy) { continue; }
+        let dx = tx as i32 - sx as i32;
+        let dy = ty as i32 - sy as i32;
+        let d2 = (dx*dx + dy*dy) as u32;
+        if best.map_or(true, |(_, _, b)| d2 > b) {
+            best = Some((tx, ty, d2));
+        }
+    }
+    best.map(|(x, y, _)| (x, y))
 }

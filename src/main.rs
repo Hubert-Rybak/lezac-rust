@@ -45,12 +45,24 @@ async fn main() {
     let levels = load_levels(&format!("{}/LIVELS.SCH", ap));
     let monster_defs = load_monster_defs(&format!("{}/GRAN.MST", ap));
     let records = load_records(&format!("{}/RECS.DAT", ap));
+    let sound = sound::SoundManager::load(&format!("{}/PROEFS.SON", ap)).await;
     let renderer = Renderer::new();
-    let mut game = Game::new(levels, monster_defs, records);
+    let mut game = Game::new(levels, monster_defs, records, sound);
+
+    /// 70 Hz fixed step matches the original VGA vsync timing (GAME_SPEC §8.1).
+    const STEP: f32 = 1.0 / 70.0;
+    let mut accum = 0.0_f32;
 
     loop {
-        let dt = get_frame_time().min(0.05);
-        game.update(dt);
+        accum += get_frame_time().min(0.25);
+        // Cap to a few steps to avoid spiral-of-death after a stall.
+        let mut steps = 0;
+        while accum >= STEP && steps < 6 {
+            game.update(STEP);
+            accum -= STEP;
+            steps += 1;
+        }
+        if steps == 6 { accum = 0.0; }
 
         renderer.begin();
         match game.state {
@@ -118,14 +130,7 @@ async fn main() {
                 draw_text_centered(&fonts, "PRESS ANY KEY", 180.0, Color::new(0.5, 0.5, 0.5, 1.0));
             }
             GameState::LevelIntro => {
-                clear_background(Color::new(0.15, 0.15, 0.0, 1.0));
-                for y in (0..200).step_by(2) {
-                    for x in (0..320).step_by(2) {
-                        if (x + y) % 4 == 0 {
-                            draw_rectangle(x as f32, y as f32, 1.0, 1.0, Color::new(0.2, 0.2, 0.0, 0.3));
-                        }
-                    }
-                }
+                clear_background(BLACK);
                 let msg = if game.english { format!("NOW ENTERING LEVEL {}", game.current_level + 1) }
                           else { format!("PREPARATI PER IL LIVELLO {}", game.current_level + 1) };
                 draw_text_centered(&fonts, &msg, 95.0, WHITE);
@@ -138,15 +143,17 @@ async fn main() {
                 }
                 let li = game.current_level;
                 if li < game.levels.len() {
-                    draw_tiles(&game.levels[li], game.scroll_x, game.scroll_y, &palette, game.show_background);
+                    draw_tiles(&game.levels[li], game.scroll_x, game.scroll_y, &palette, &misc_sprites, game.show_background);
                     draw_powerups(&game.powerups, &misc_sprites, game.scroll_x, game.scroll_y, game.game_time);
                     draw_bombs(&game.bombs, &misc_sprites, game.scroll_x, game.scroll_y, game.game_time);
                     draw_monsters(&game.monsters, &misc_sprites, game.scroll_x, game.scroll_y);
                     for p in &game.players {
                         draw_player(p, &player_sprites, game.scroll_x, game.scroll_y);
                     }
+                    draw_collapsing(&game.collapsing, &misc_sprites, game.scroll_x, game.scroll_y);
                     draw_debris(&game.debris, &palette, game.scroll_x, game.scroll_y);
-                    draw_hud(&game.players, &game.levels[li], game.current_destruction_pct, &fonts, &palette, game.two_player);
+                    draw_screen_width_mask(game.screen_width_factor);
+                    draw_hud(&game.players, &game.levels[li], game.current_destruction_pct, &fonts, &player_sprites, &palette, game.two_player);
                     for p in &game.players {
                         if !p.alive && p.lives > 0 && p.respawn_timer <= 0.0 {
                             let m = if game.english { "PRESS FIRE TO CONTINUE" } else { "PREMI FUOCO" };

@@ -1,10 +1,11 @@
 //! Rendering: tiles, sprites, HUD, backgrounds
 
 use macroquad::prelude::*;
-use crate::assets::{Palette, SpriteSheet, Background};
+use crate::assets::{Palette, SpriteSheet, Background, TitleCard};
 use crate::level::Level;
 use crate::player::{Player, Bomb, BombType, Debris};
 use crate::monsters::{Monster, MonsterType, Powerup, PowerupType};
+use crate::game::Collapsing;
 
 pub const SCREEN_W: f32 = 320.0;
 pub const SCREEN_H: f32 = 200.0;
@@ -81,39 +82,28 @@ pub fn draw_background(bg: &Background, scroll_x: f32, _palette: &Palette) {
     }
 }
 
-pub fn draw_tiles(level: &Level, sx: f32, sy: f32, palette: &Palette, show_bg: bool) {
+/// Draw level tiles by indexing BOMOMIMK.SPR with the tile value.
+/// Each non-zero tile byte directly names a sprite in BOMOMIMK.SPR (per GAME_SPEC §7).
+/// Falls back to a palette-indexed rectangle if the sprite index is missing.
+pub fn draw_tiles(level: &Level, sx: f32, sy: f32, palette: &Palette, tiles: &SpriteSheet, _show_bg: bool) {
     let stx = (sx / TILE_SIZE) as i32;
     let sty = (sy / TILE_SIZE) as i32;
     let etx = stx + (SCREEN_W / TILE_SIZE) as i32 + 2;
     let ety = sty + (PLAY_HEIGHT / TILE_SIZE) as i32 + 2;
 
-    if show_bg {
-        for ty in sty..ety {
-            for tx in stx..etx {
-                if tx >= 0 && ty >= 0 {
-                    let t = level.bg_tile_at(tx as usize, ty as usize);
-                    if t != 0 {
-                        let c = tile_color(t, palette);
-                        let bc = Color::new(c.r * 0.6, c.g * 0.6, c.b * 0.6, c.a);
-                        draw_rectangle(tx as f32 * TILE_SIZE - sx, ty as f32 * TILE_SIZE - sy, TILE_SIZE, TILE_SIZE, bc);
-                    }
-                }
-            }
-        }
-    }
-
     for ty in sty..ety {
         for tx in stx..etx {
-            if tx >= 0 && ty >= 0 {
-                let t = level.tile_at(tx as usize, ty as usize);
-                if t != 0 {
-                    let c = tile_color(t, palette);
-                    let px = tx as f32 * TILE_SIZE - sx;
-                    let py = ty as f32 * TILE_SIZE - sy;
-                    draw_rectangle(px, py, TILE_SIZE, TILE_SIZE, c);
-                    draw_rectangle_lines(px, py, TILE_SIZE, TILE_SIZE, 1.0,
-                        Color::new(c.r * 0.8, c.g * 0.8, c.b * 0.8, 0.3));
-                }
+            if tx < 0 || ty < 0 { continue; }
+            let t = level.tile_at(tx as usize, ty as usize);
+            if t == 0 { continue; }
+            let px = tx as f32 * TILE_SIZE - sx;
+            let py = ty as f32 * TILE_SIZE - sy;
+            let si = t as usize;
+            if si < tiles.num_sprites() && tiles.sprite_width(si) > 0 {
+                tiles.draw(si, px, py);
+            } else {
+                let c = tile_color(t, palette);
+                draw_rectangle(px, py, TILE_SIZE, TILE_SIZE, c);
             }
         }
     }
@@ -163,6 +153,18 @@ pub fn draw_bombs(bombs: &[Bomb], sprites: &SpriteSheet, sx: f32, sy: f32, time:
     }
 }
 
+/// Draw falling rubble as overlay BOMOMIMK sprites at the crack-stage index.
+pub fn draw_collapsing(collapsing: &[Collapsing], tiles: &SpriteSheet, sx: f32, sy: f32) {
+    for c in collapsing {
+        let px = c.tx as f32 * TILE_SIZE - sx;
+        let py = c.ty as f32 * TILE_SIZE + c.y_offset - sy;
+        let si = c.stage as usize;
+        if si < tiles.num_sprites() {
+            tiles.draw(si, px, py);
+        }
+    }
+}
+
 pub fn draw_debris(debris: &[Debris], palette: &Palette, sx: f32, sy: f32) {
     for d in debris {
         let a = (d.life / 2.0).min(1.0);
@@ -207,6 +209,7 @@ pub fn draw_powerups(powerups: &[Powerup], sprites: &SpriteSheet, sx: f32, sy: f
                 PowerupType::Present => GOLD,
                 PowerupType::HotDog => ORANGE,
                 PowerupType::FirstAid => RED,
+                PowerupType::Invincibility => Color::new(1.0, 1.0, 1.0, 1.0),
                 PowerupType::YellowBombBox => YELLOW,
                 PowerupType::GreenBombBox => GREEN,
                 PowerupType::JollyCloud => SKYBLUE,
@@ -218,42 +221,70 @@ pub fn draw_powerups(powerups: &[Powerup], sprites: &SpriteSheet, sx: f32, sy: f
     }
 }
 
-pub fn draw_hud(players: &[Player], level: &Level, destr_pct: f32, fonts: &SpriteSheet, _palette: &Palette, _two_player: bool) {
+pub fn draw_hud(players: &[Player], level: &Level, destr_pct: f32, fonts: &SpriteSheet, player_sprites: &SpriteSheet, _palette: &Palette, _two_player: bool) {
     let hy = PLAY_HEIGHT;
     draw_rectangle(0.0, hy, SCREEN_W, HUD_HEIGHT, Color::new(0.0, 0.0, 0.3, 1.0));
     draw_line(0.0, hy, SCREEN_W, hy, 1.0, Color::new(0.3, 0.3, 0.8, 1.0));
 
     if let Some(p) = players.first() {
-        // Lives indicators
-        for i in 0..p.lives.max(0) as usize {
-            draw_text_small(fonts, "a", 4.0 + i as f32 * 10.0, hy + 28.0, GREEN);
+        // Sprite 89 is the "LIVES" label (21x7); fall back silently if absent.
+        let lives_label = 89;
+        if lives_label < player_sprites.num_sprites() {
+            player_sprites.draw(lives_label, 4.0, hy + 18.0);
         }
-        // Energy bar
-        draw_rectangle_lines(4.0, hy + 4.0, 100.0, 10.0, 1.0, SKYBLUE);
-        let fw = (p.energy / p.max_energy) * 98.0;
-        draw_rectangle(5.0, hy + 5.0, fw, 8.0, YELLOW);
-        // Score
-        draw_text_small(fonts, &format!("{}", p.score), 112.0, hy + 12.0, WHITE);
+        // Sprite 90: heart/life icon (12x10), repeated once per life.
+        let life_sprite = 90;
+        let lw = if life_sprite < player_sprites.num_sprites() {
+            player_sprites.sprite_width(life_sprite) as f32 + 1.0
+        } else { 10.0 };
+        for i in 0..p.lives.max(0) as usize {
+            let lx = 4.0 + i as f32 * lw;
+            if life_sprite < player_sprites.num_sprites() {
+                player_sprites.draw(life_sprite, lx, hy + 28.0);
+            } else {
+                draw_text_small(fonts, "a", lx, hy + 28.0, GREEN);
+            }
+        }
 
-        // Current bomb indicator
-        let bc = match p.current_bomb {
-            BombType::Small => Color::new(0.4, 0.4, 0.4, 1.0),
-            BombType::Medium => Color::new(0.6, 0.4, 0.2, 1.0),
-            BombType::Large => Color::new(0.8, 0.2, 0.2, 1.0),
-            BombType::Super => Color::new(0.2, 0.8, 0.2, 1.0),
-        };
+        // Energy: sprite 79 left endcap, 80 fill, 81 right endcap (best-effort).
+        // If the sprite slots aren't where we expect we just draw a coloured bar.
+        let bar_x = 50.0;
+        let bar_y = hy + 4.0;
+        let bar_w = 60.0;
+        if 79 < player_sprites.num_sprites() { player_sprites.draw(79, bar_x, bar_y); }
+        else { draw_rectangle_lines(bar_x, bar_y, bar_w, 6.0, 1.0, SKYBLUE); }
+        let fw = (p.energy / p.max_energy) * (bar_w - 2.0);
+        draw_rectangle(bar_x + 1.0, bar_y + 1.0, fw, 4.0, YELLOW);
+
+        // Score
+        draw_text_small(fonts, &format!("{:06}", p.score), 50.0, hy + 14.0, WHITE);
+
+        // Current bomb indicator: try sprite (53 + bomb_idx) for the icon.
         let cx = SCREEN_W / 2.0 - 30.0;
-        draw_rectangle(cx, hy + 4.0, 12.0, 12.0, bc);
-        draw_text_small(fonts, &format!("{:2}", p.bombs[p.current_bomb as usize]), cx + 14.0, hy + 12.0, WHITE);
+        let bomb_sprite = 53 + p.current_bomb as usize;
+        if bomb_sprite < player_sprites.num_sprites() {
+            player_sprites.draw(bomb_sprite, cx, hy + 2.0);
+        } else {
+            let bc = match p.current_bomb {
+                BombType::Small => Color::new(0.4, 0.4, 0.4, 1.0),
+                BombType::Medium => Color::new(0.6, 0.4, 0.2, 1.0),
+                BombType::Large => Color::new(0.8, 0.2, 0.2, 1.0),
+                BombType::Super => Color::new(0.2, 0.8, 0.2, 1.0),
+            };
+            draw_rectangle(cx, hy + 4.0, 12.0, 12.0, bc);
+        }
+        draw_text_small(fonts, &format!("{:2}", p.bombs[p.current_bomb as usize]), cx + 18.0, hy + 12.0, WHITE);
     }
 
-    // Bonus/destruction targets
-    let bx = SCREEN_W / 2.0 + 10.0;
-    draw_circle(bx + 4.0, hy + 8.0, 4.0, GOLD);
-    draw_text_small(fonts, &format!("{:02}", level.bonus_target), bx + 12.0, hy + 10.0, WHITE);
-    draw_text_small(fonts, "*", bx, hy + 24.0, ORANGE);
-    draw_text_small(fonts, &format!("{:02}", level.destruction_pct), bx + 12.0, hy + 24.0, WHITE);
-    draw_text_small(fonts, &format!("{}%", destr_pct as u32), bx + 34.0, hy + 24.0, YELLOW);
+    // Bonus/destruction targets — sprite 85/86 if available as decoration.
+    let bx = SCREEN_W / 2.0 + 14.0;
+    if 85 < player_sprites.num_sprites() { player_sprites.draw(85, bx, hy + 4.0); }
+    else { draw_circle(bx + 4.0, hy + 8.0, 4.0, GOLD); }
+    draw_text_small(fonts, &format!("{:02}", level.bonus_target), bx + 22.0, hy + 8.0, WHITE);
+    if 86 < player_sprites.num_sprites() { player_sprites.draw(86, bx, hy + 18.0); }
+    else { draw_text_small(fonts, "*", bx, hy + 24.0, ORANGE); }
+    draw_text_small(fonts, &format!("{:02}", level.destruction_pct), bx + 22.0, hy + 22.0, WHITE);
+    draw_text_small(fonts, &format!("{}%", destr_pct as u32), bx + 44.0, hy + 22.0, YELLOW);
 }
 
 /// Draw text using the font sprite sheet.
@@ -313,9 +344,24 @@ pub fn draw_text_centered(fonts: &SpriteSheet, text: &str, y: f32, color: Color)
     draw_text_small(fonts, text, (SCREEN_W - tw) / 2.0, y, color);
 }
 
-pub fn draw_title_screen(tex: &Texture2D) {
-    draw_texture_ex(tex, 0.0, 0.0, WHITE, DrawTextureParams {
-        dest_size: Some(vec2(SCREEN_W, SCREEN_H)),
+/// Draw the CARO.CAR title card. It's 132x64, drawn centered horizontally at
+/// x=94 (per the original game binary), near the top of the screen.
+/// Mask off the left and right of the playfield so the visible width
+/// matches `factor` (1.0 = full 320 px, 0.5 = half). Per GAME_SPEC §11.4.
+pub fn draw_screen_width_mask(factor: f32) {
+    if factor >= 0.999 { return; }
+    let visible = (SCREEN_W * factor).round();
+    let bar = ((SCREEN_W - visible) * 0.5).max(0.0);
+    if bar <= 0.0 { return; }
+    draw_rectangle(0.0, 0.0, bar, PLAY_HEIGHT, BLACK);
+    draw_rectangle(SCREEN_W - bar, 0.0, bar, PLAY_HEIGHT, BLACK);
+}
+
+pub fn draw_title_screen(card: &TitleCard) {
+    let dx = (SCREEN_W - card.width as f32) / 2.0;
+    let dy = 12.0;
+    draw_texture_ex(&card.texture, dx, dy, WHITE, DrawTextureParams {
+        dest_size: Some(vec2(card.width as f32, card.height as f32)),
         ..Default::default()
     });
 }

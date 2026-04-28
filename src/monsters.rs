@@ -1,4 +1,4 @@
-use crate::level::{Level, MonsterDef};
+use crate::level::{Level, MonsterTemplate};
 use crate::player::Player;
 
 const TILE_SIZE: f32 = 8.0;
@@ -23,18 +23,29 @@ pub struct Monster {
     pub anim_frame: usize, pub anim_timer: f32,
     pub patrol_timer: f32,
     pub start_x: f32, pub start_y: f32,
+    /// Sprite-sheet base index pulled from GRAN.MST (or fallback per type).
+    pub sprite_base: usize,
+    /// Per-frame movement speed in pixels (from GRAN.MST byte 1).
+    pub speed: f32,
+    /// Per-frame contact damage scalar (from GRAN.MST byte 5).
+    pub damage: f32,
+    /// Bit-flags from GRAN.MST byte 0. Bit 0 = floats (ignores gravity).
+    pub flags: u8,
 }
 
 impl Monster {
-    pub fn new(x: f32, y: f32, mt: MonsterType) -> Self {
+    pub fn new(x: f32, y: f32, mt: MonsterType, sprite_base: usize, speed: f32, damage: f32, flags: u8) -> Self {
         Monster {
-            x, y, vx: mt.speed(), vy: 0.0,
+            x, y, vx: speed, vy: 0.0,
             monster_type: mt, health: mt.health(),
             alive: true, facing_right: true,
             anim_frame: 0, anim_timer: 0.0,
             patrol_timer: 0.0, start_x: x, start_y: y,
+            sprite_base, speed, damage, flags,
         }
     }
+    /// True when GRAN.MST flags mark this monster as floating.
+    pub fn floats(&self) -> bool { self.flags & 0x01 != 0 }
 
     pub fn update(&mut self, level: &Level, players: &[Player], dt: f32) {
         if !self.alive { return; }
@@ -43,7 +54,7 @@ impl Monster {
 
         match self.monster_type {
             MonsterType::Walker => {
-                self.vy += 0.3; if self.vy > 3.0 { self.vy = 3.0; }
+                if !self.floats() { self.vy += 0.3; if self.vy > 3.0 { self.vy = 3.0; } }
                 let nx = self.x + self.vx;
                 let tx = if self.vx > 0.0 { ((nx+15.0)/TILE_SIZE) as usize } else { (nx/TILE_SIZE) as usize };
                 let ty = (self.y/TILE_SIZE) as usize;
@@ -70,11 +81,11 @@ impl Monster {
                         if d < nd { nd = d; tx = p.x; }
                     }
                 }
-                let s = self.monster_type.speed();
+                let s = self.speed;
                 if tx > self.x+2.0 { self.vx = s; self.facing_right = true; }
                 else if tx < self.x-2.0 { self.vx = -s; self.facing_right = false; }
                 else { self.vx = 0.0; }
-                self.vy += 0.3; if self.vy > 3.0 { self.vy = 3.0; }
+                if !self.floats() { self.vy += 0.3; if self.vy > 3.0 { self.vy = 3.0; } }
                 self.x += self.vx;
                 let ny = self.y + self.vy;
                 let bty = ((ny+15.0)/TILE_SIZE) as usize;
@@ -90,7 +101,7 @@ impl Monster {
             }
             MonsterType::Jumper => {
                 self.patrol_timer += dt;
-                self.vy += 0.3; if self.vy > 3.0 { self.vy = 3.0; }
+                if !self.floats() { self.vy += 0.3; if self.vy > 3.0 { self.vy = 3.0; } }
                 if self.patrol_timer > 1.5 { self.patrol_timer = 0.0; self.vy = -3.5; }
                 self.x += self.vx;
                 let tx = if self.vx > 0.0 { ((self.x+15.0)/TILE_SIZE) as usize } else { (self.x/TILE_SIZE) as usize };
@@ -110,7 +121,7 @@ impl Monster {
     }
 
     pub fn take_damage(&mut self, amount: f32) { self.health -= amount; if self.health <= 0.0 { self.alive = false; } }
-    pub fn sprite_index(&self) -> usize { self.monster_type.sprite_base() + self.anim_frame }
+    pub fn sprite_index(&self) -> usize { self.sprite_base + self.anim_frame }
     pub fn collides_with_player(&self, p: &Player) -> bool {
         if !self.alive || !p.alive { return false; }
         self.x < p.x+12.0 && self.x+14.0 > p.x && self.y < p.y+16.0 && self.y+14.0 > p.y
@@ -118,22 +129,35 @@ impl Monster {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-pub enum PowerupType { Present, HotDog, FirstAid, YellowBombBox, GreenBombBox, JollyCloud, BigDiamond }
+pub enum PowerupType { Present, HotDog, FirstAid, Invincibility, YellowBombBox, GreenBombBox, JollyCloud, BigDiamond }
 impl PowerupType {
     pub fn random() -> Self {
-        match macroquad::rand::gen_range(0u32, 7) {
+        match macroquad::rand::gen_range(0u32, 8) {
             0 => Self::Present, 1 => Self::HotDog, 2 => Self::FirstAid,
-            3 => Self::YellowBombBox, 4 => Self::GreenBombBox, 5 => Self::JollyCloud,
-            _ => Self::BigDiamond,
+            3 => Self::Invincibility, 4 => Self::YellowBombBox, 5 => Self::GreenBombBox,
+            6 => Self::JollyCloud, _ => Self::BigDiamond,
+        }
+    }
+    /// From a 7-byte BonusSpawn record (bonus type in raw[4]) per spec §6.4.
+    pub fn from_bonus_id(b: u8) -> Self {
+        match b {
+            2 => Self::FirstAid,        // full energy
+            3 => Self::HotDog,          // +33 energy
+            4 => Self::Invincibility,   // 46 frames invuln
+            5 => Self::YellowBombBox,   // random bombs
+            6 => Self::GreenBombBox,    // larger bomb supply
+            _ => Self::Present,
         }
     }
     pub fn points(&self) -> u32 {
         match self { Self::Present=>2000, Self::HotDog=>1500, Self::FirstAid=>1000,
+            Self::Invincibility=>2500,
             Self::YellowBombBox=>3000, Self::GreenBombBox=>1000, Self::JollyCloud=>2000, Self::BigDiamond=>5000 }
     }
     pub fn sprite_index(&self) -> usize {
         match self { Self::Present=>50, Self::HotDog=>51, Self::FirstAid=>52,
-            Self::YellowBombBox=>53, Self::GreenBombBox=>54, Self::JollyCloud=>55, Self::BigDiamond=>56 }
+            Self::Invincibility=>53,
+            Self::YellowBombBox=>54, Self::GreenBombBox=>55, Self::JollyCloud=>56, Self::BigDiamond=>57 }
     }
 }
 
@@ -164,25 +188,31 @@ impl Powerup {
     }
 }
 
-pub fn spawn_monsters(level: &Level, mdef: &MonsterDef, level_idx: usize) -> Vec<Monster> {
+/// Spawn monsters from the level's monster table (per LIVELS.SCH spawn records).
+/// Each spawn is 30 raw bytes; raw[0]/raw[2] are tile coords and raw[4] picks
+/// a GRAN.MST template (sprite base + speed). We blend the template's
+/// sprite_base/speed with the per-type defaults so unknown templates still
+/// look reasonable.
+pub fn spawn_monsters(level: &Level, templates: &[MonsterTemplate], _level_idx: usize) -> Vec<Monster> {
     let mut monsters = Vec::new();
-    let num = (mdef.data[0] as usize % 6) + 2;
-    let mut spawns: Vec<(f32,f32)> = Vec::new();
-    for y in 1..level.height.saturating_sub(1) {
-        for x in 1..level.width.saturating_sub(1) {
-            if !level.is_solid(x, y) && level.is_solid(x, y+1) && x as f32 * TILE_SIZE > 100.0 {
-                spawns.push((x as f32*TILE_SIZE, (y as f32*TILE_SIZE)-16.0));
-            }
-        }
-    }
-    if !spawns.is_empty() {
-        let step = spawns.len() / (num+1).max(1);
-        for i in 0..num {
-            let idx = ((i+1)*step).min(spawns.len()-1);
-            let (sx, sy) = spawns[idx];
-            let mt = MonsterType::from_id(mdef.data[(i*3+1) % 57] + level_idx as u8);
-            monsters.push(Monster::new(sx, sy, mt));
-        }
+    for s in &level.monsters {
+        let tx = s.raw[0] as usize;
+        let ty = s.raw[2] as usize;
+        let tidx = s.raw[4] as usize;
+        let mt = MonsterType::from_id(tidx as u8);
+        let sx = tx as f32 * TILE_SIZE;
+        let sy = (ty as f32 * TILE_SIZE) - 16.0;
+        let (sprite_base, speed, damage, flags) = if !templates.is_empty() {
+            let t = &templates[tidx % templates.len()];
+            // GRAN.MST byte 1 is a 0..255 speed value; rescale to ~0.2..1.5 px/frame.
+            let sp = (t.speed.max(1) as f32 / 8.0).clamp(0.2, 1.5);
+            // GRAN.MST byte 5 is the damage scalar; rescale to ~0.2..1.5/frame.
+            let dmg = (t.damage as f32 / 16.0).clamp(0.2, 1.5);
+            (t.sprite_base as usize, sp, dmg, t.flags)
+        } else {
+            (mt.sprite_base(), mt.speed(), mt.damage(), 0)
+        };
+        monsters.push(Monster::new(sx, sy, mt, sprite_base, speed, damage, flags));
     }
     monsters
 }
