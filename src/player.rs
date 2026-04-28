@@ -93,6 +93,10 @@ impl Player {
             if self.current_bomb == BombType::Super && !self.has_super_bombs {
                 self.current_bomb = BombType::Small;
             }
+            // Treat weapon change as no-input so friction still decelerates.
+            if self.vx > FRICTION { self.vx -= FRICTION; }
+            else if self.vx < -FRICTION { self.vx += FRICTION; }
+            else { self.vx = 0.0; }
         } else {
             // Acceleration / friction model (GAME_SPEC §3.2).
             if input.left { self.vx -= MOVE_ACCEL; self.facing_right = false; }
@@ -100,8 +104,8 @@ impl Player {
             else if self.vx > FRICTION { self.vx -= FRICTION; }
             else if self.vx < -FRICTION { self.vx += FRICTION; }
             else { self.vx = 0.0; }
-            self.vx = self.vx.clamp(-MAX_MOVE, MAX_MOVE);
         }
+        self.vx = self.vx.clamp(-MAX_MOVE, MAX_MOVE);
 
         if input.jump && self.on_ground { self.vy = JUMP_VEL; self.on_ground = false; }
 
@@ -182,8 +186,9 @@ impl Player {
                 // 0x27 / 0x45 are activated by the down-key, not by collision.
                 if v == TILE_DROP_THROUGH || v == TILE_TELEPORT { continue; }
                 if v != 0 && v <= TILE_SOLID_MAX { return true; }
-                // (0x4D..0x52) ceiling-only band only blocks the head.
-                if v > TILE_SOLID_MAX && v <= TILE_CEIL_MAX && ty < b { return true; }
+                // (0x4D..0x52) ceiling band only blocks the upper half of the
+                // player. Standing on top of one is allowed but heads bonk.
+                if v > TILE_SOLID_MAX && v <= TILE_CEIL_MAX && ty == t { return true; }
             }
         }
         false
@@ -208,17 +213,36 @@ impl Player {
     }
 }
 
-/// Pair-less teleporters: jump to the next 0x45 tile we find. The original
-/// game wires pairs through the platform table; without that information,
-/// "next match" still produces functional warping for level testing.
+/// Resolve a 0x45 teleport tile to its destination. The original game stores
+/// pairs in the platform table (14-byte records); we look for a record whose
+/// source coords (raw[0], raw[2]) match the entry tile and return the
+/// destination (raw[4], raw[6]). If no platform record matches we fall back
+/// to the *furthest* 0x45 tile on the map, which is at least visually
+/// distinct from the source.
 fn find_teleport_target(level: &Level, sx: usize, sy: usize) -> Option<(usize, usize)> {
-    let total = level.width * level.height;
-    let start = sy * level.width + sx;
-    for i in 1..total {
-        let idx = (start + i) % total;
-        if level.tiles[idx] == TILE_TELEPORT {
-            return Some((idx % level.width, idx / level.width));
+    for plat in &level.platforms {
+        let psx = plat.raw[0] as usize;
+        let psy = plat.raw[2] as usize;
+        if psx == sx && psy == sy {
+            let pdx = plat.raw[4] as usize;
+            let pdy = plat.raw[6] as usize;
+            if pdx < level.width && pdy < level.height && (pdx, pdy) != (sx, sy) {
+                return Some((pdx, pdy));
+            }
         }
     }
-    None
+    let mut best: Option<(usize, usize, u32)> = None;
+    for (i, &t) in level.tiles.iter().enumerate() {
+        if t != TILE_TELEPORT { continue; }
+        let tx = i % level.width;
+        let ty = i / level.width;
+        if (tx, ty) == (sx, sy) { continue; }
+        let dx = tx as i32 - sx as i32;
+        let dy = ty as i32 - sy as i32;
+        let d2 = (dx*dx + dy*dy) as u32;
+        if best.map_or(true, |(_, _, b)| d2 > b) {
+            best = Some((tx, ty, d2));
+        }
+    }
+    best.map(|(x, y, _)| (x, y))
 }

@@ -109,7 +109,8 @@ impl Game {
             self.powerups.push(p);
         }
         self.initial_solid_count = self.levels[li].initial_variant_count as usize;
-        self.scroll_x = 0.0; self.scroll_y = 0.0;
+        self.scroll_x = self.levels[li].scroll_x as f32 * TILE_SIZE;
+        self.scroll_y = self.levels[li].scroll_y as f32 * TILE_SIZE;
     }
 
     fn find_start_positions(&mut self) {
@@ -213,9 +214,9 @@ impl Game {
         let mut expl = Vec::new();
         for b in &mut self.bombs {
             if b.exploding { b.explosion_timer -= dt; }
-            else { b.timer -= dt; if b.timer <= 0.0 { b.exploding = true; b.explosion_timer = EXPLOSION_DURATION; expl.push((b.x,b.y,b.bomb_type)); self.sound.play(SoundEffect::Explosion); } }
+            else { b.timer -= dt; if b.timer <= 0.0 { b.exploding = true; b.explosion_timer = EXPLOSION_DURATION; expl.push((b.x,b.y,b.bomb_type,b.owner)); self.sound.play(SoundEffect::Explosion); } }
         }
-        for (ex,ey,bt) in &expl { self.process_explosion(*ex,*ey,*bt,li); }
+        for (ex,ey,bt,owner) in &expl { self.process_explosion(*ex,*ey,*bt,*owner,li); }
         self.bombs.retain(|b| !b.exploding || b.explosion_timer > 0.0);
         self.update_collapsing(li, dt);
 
@@ -294,7 +295,7 @@ impl Game {
         if self.players.iter().all(|p| !p.alive && p.lives <= 0) { self.state = GameState::GameOver; self.state_timer = 5.0; }
     }
 
-    fn process_explosion(&mut self, ex: f32, ey: f32, bt: BombType, li: usize) {
+    fn process_explosion(&mut self, ex: f32, ey: f32, bt: BombType, owner: usize, li: usize) {
         let radius = bt.radius();
         let damage = bt.damage();
         let cx = ((ex+8.0)/TILE_SIZE) as i32;
@@ -307,7 +308,7 @@ impl Game {
         if cx >= 0 && cy >= 0 && (cx as usize) < self.levels[li].width && (cy as usize) < self.levels[li].height {
             let attr = self.levels[li].attr_at(cx as usize, cy as usize);
             if attr != 0 && attr < 0x4000 {
-                self.flood_fill_destroy(li, cx as usize, cy as usize, attr);
+                self.flood_fill_destroy(li, cx as usize, cy as usize, attr, owner);
             }
         }
 
@@ -331,12 +332,19 @@ impl Game {
                 }
             }
         }
+        let mut kills: Vec<(f32, f32)> = Vec::new();
         for m in &mut self.monsters {
             let dx = m.x-ex; let dy = m.y-ey; let dist = (dx*dx+dy*dy).sqrt();
             if dist <= radius {
                 let was = m.alive;
                 m.take_damage(damage*(1.0-dist/radius));
-                if was && !m.alive { self.powerups.push(Powerup::new(m.x, m.y, PowerupType::random())); }
+                if was && !m.alive { kills.push((m.x, m.y)); }
+            }
+        }
+        for (mx, my) in kills {
+            self.powerups.push(Powerup::new(mx, my, PowerupType::random()));
+            if let Some(p) = self.players.get_mut(owner) {
+                p.score = p.score.saturating_add(500);
             }
         }
         for p in &mut self.players {
@@ -349,7 +357,7 @@ impl Game {
     /// whose attribute equals `attr` is replaced with crack stage 0x76 and
     /// queued for collapse animation. Mirrors the rectangle-expansion
     /// algorithm in FUN_1000_370e (with §11.2 crack states).
-    fn flood_fill_destroy(&mut self, li: usize, sx: usize, sy: usize, attr: u16) {
+    fn flood_fill_destroy(&mut self, li: usize, sx: usize, sy: usize, attr: u16, owner: usize) {
         let (w, h) = {
             let lev = &self.levels[li];
             (lev.width, lev.height)
@@ -388,7 +396,7 @@ impl Game {
             if y > 0 { stack.push((x, y - 1)); }
         }
         if destroyed > 0 {
-            if let Some(p) = self.players.first_mut() {
+            if let Some(p) = self.players.get_mut(owner) {
                 p.score = p.score.saturating_add(destroyed * 10);
             }
         }
@@ -416,21 +424,23 @@ impl Game {
             let next_row = cur_row + 1;
             let landed = next_row >= lev_h
                 || self.levels[li].is_solid(c.tx, next_row);
-            // Damage entities standing in the falling cell.
+            // Damage entities standing in the falling cell. Per-frame at 70 Hz,
+            // so the constants are tuned for ~7 dps to players, ~28 dps to
+            // monsters when overlap persists.
             let py = c.ty as f32 * TILE_SIZE + c.y_offset;
             let px = c.tx as f32 * TILE_SIZE;
             for p in &mut self.players {
                 if p.alive
                     && p.x + 12.0 > px && p.x < px + TILE_SIZE
                     && p.y + 16.0 > py && p.y < py + TILE_SIZE {
-                    p.take_damage(2.0);
+                    p.take_damage(0.1);
                 }
             }
             for m in &mut self.monsters {
                 if m.alive
                     && m.x + 14.0 > px && m.x < px + TILE_SIZE
                     && m.y + 14.0 > py && m.y < py + TILE_SIZE {
-                    m.take_damage(8.0);
+                    m.take_damage(0.4);
                 }
             }
             if landed { continue; }
