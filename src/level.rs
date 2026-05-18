@@ -9,6 +9,11 @@ pub const TILE_PIXELS: usize = 8;
 
 /// Low-memory threshold table at DS:0x52 in the original executable.
 pub const ORIGINAL_DROP_THRESHOLDS_0X52: [u8; 8] = [0x28, 0x41, 0x47, 0x4e, 0x53, 0x59, 0x5d, 0x64];
+/// Low-memory contact selector bytes at DS:0x42, indexed as `(object_id - 0x12) * 2`.
+pub const ORIGINAL_PLAYER_CONTACT_SELECTORS_0X42: [u8; 24] = [
+    0x88, 0x13, 0x58, 0x00, 0x56, 0x00, 0x57, 0x00, 0x58, 0x00, 0x59, 0x00, 0x56, 0x00, 0x5a, 0x00,
+    0x28, 0x41, 0x47, 0x4e, 0x53, 0x59, 0x5d, 0x64,
+];
 /// Low-memory animation min/max pairs at DS:0x58.
 pub const ORIGINAL_ANIMATION_RANGES_0X58: [(u8, u8); 25] = [
     (0x5d, 0x64),
@@ -2458,6 +2463,10 @@ mod tests {
         let exe = include_bytes!("../assets/LEZAC.EXE");
         let data_offset_1aa2_0000 = 0x770 + 0x1aa20 - 0x10000;
 
+        assert_eq!(
+            &exe[data_offset_1aa2_0000 + 0x42..data_offset_1aa2_0000 + 0x5a],
+            &ORIGINAL_PLAYER_CONTACT_SELECTORS_0X42
+        );
         assert_eq!(
             &exe[data_offset_1aa2_0000 + 0x52..data_offset_1aa2_0000 + 0x5a],
             &ORIGINAL_DROP_THRESHOLDS_0X52

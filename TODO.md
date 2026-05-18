@@ -264,6 +264,10 @@ Font rendering is now correct.
   byte `0x19 = byte[0x1a] - 4`, signed vitality update through byte `0x24`, and
   death transition to object id `0x0c`, state `2`, countdown `0x19` on negative
   vitality ✅
+- The player-contact transform branch for object ids `0x13..0x1d` now uses the
+  recovered low-memory selector bytes at `0x42`, including the transition to
+  object id `0x0b`, state `5`, countdown `0x1a`, animation clear, X-velocity
+  clear, and `FUN_1920_13a8(3)` Y-velocity randomization request ✅
 - State-6 damage byte handling is pinned: fixed-record byte `0x24` is the
   budget, byte `0x02` is decremented when damage exceeds the budget, byte
   `0x24` wraps after subtraction, and `0xff` in byte `0x02` removes the object ✅

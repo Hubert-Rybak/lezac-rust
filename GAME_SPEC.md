@@ -407,8 +407,14 @@ selects low-memory table byte `0x77 + object_id * 2 + slot`, where `slot` is
 runtime byte `0x19`, and adds signed `0x661e` to vitality byte `0x24`. If that
 signed sum is negative, the object transitions to object id `0x0c`, state `2`,
 countdown byte `0x19`, and cleared animation byte `0x1b`; otherwise the summed
-vitality byte is retained. The selector table contents are still a low-memory
-artifact gap, so the Rust helper takes them as injected bytes.
+vitality byte is retained. The selector bytes are recovered from the original
+executable's low-memory `0x77+` table.
+For player contact with object ids `0x13..0x1d`, the same function records
+`object_id - 0x12` for the player, changes the object to id `0x0b`, state `5`,
+selects `FUN_1000_5a75` input from low-memory `0x42 + (object_id - 0x12) * 2`,
+sets countdown byte `0x02` to `0x1a`, clears animation byte `0x1b`, clears X
+velocity, and requests `FUN_1920_13a8(3)` before assigning randomized Y
+velocity.
 The randomized impulse branch of `FUN_1000_5cb0` runs only when the global
 70 Hz frame counter is divisible by `0x1d`. In that branch, it consumes
 `FUN_1920_13a8(100)` for a conditional sound request (`roll > 0x46` and even

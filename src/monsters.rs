@@ -51,6 +51,18 @@ pub struct OriginalDropBranchRebirth {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct OriginalPlayerContactTransform {
+    pub bonus_id: u8,
+    pub object_id: u8,
+    pub state: u8,
+    pub selector_id: u8,
+    pub countdown: u8,
+    pub clears_animation_mode: bool,
+    pub clears_x_velocity: bool,
+    pub random_y_velocity_modulus: u16,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct OriginalFourTileDamageScan {
     last_u_tile_index: Option<usize>,
     damage_delta: i8,
@@ -250,6 +262,30 @@ fn original_low_object_damage_response(
         selector_id,
         animation_subcounter_0x19,
         outcome,
+    })
+}
+
+fn original_player_contact_transform(
+    object_id: u8,
+    selector_bytes_0x42: &[u8],
+) -> Option<OriginalPlayerContactTransform> {
+    if object_id != 0 && (object_id <= 8 || object_id >= 0x1e) {
+        return None;
+    }
+
+    let bonus_id = object_id.wrapping_sub(0x12);
+    let selector_index = bonus_id as usize * 2;
+    let selector_id = *selector_bytes_0x42.get(selector_index)?;
+
+    Some(OriginalPlayerContactTransform {
+        bonus_id,
+        object_id: 0x0b,
+        state: 5,
+        selector_id,
+        countdown: 0x1a,
+        clears_animation_mode: true,
+        clears_x_velocity: true,
+        random_y_velocity_modulus: 3,
     })
 }
 
@@ -1507,6 +1543,49 @@ mod tests {
                     clears_animation_mode: true,
                 },
             })
+        );
+    }
+
+    #[test]
+    fn original_player_contact_transform_uses_lezac_exe_selector_table() {
+        assert_eq!(
+            original_player_contact_transform(
+                0x13,
+                &crate::level::ORIGINAL_PLAYER_CONTACT_SELECTORS_0X42
+            ),
+            Some(OriginalPlayerContactTransform {
+                bonus_id: 1,
+                object_id: 0x0b,
+                state: 5,
+                selector_id: 0x58,
+                countdown: 0x1a,
+                clears_animation_mode: true,
+                clears_x_velocity: true,
+                random_y_velocity_modulus: 3,
+            })
+        );
+        assert_eq!(
+            original_player_contact_transform(
+                0x1d,
+                &crate::level::ORIGINAL_PLAYER_CONTACT_SELECTORS_0X42
+            )
+            .unwrap()
+            .selector_id,
+            0x5d
+        );
+        assert_eq!(
+            original_player_contact_transform(
+                0x1e,
+                &crate::level::ORIGINAL_PLAYER_CONTACT_SELECTORS_0X42
+            ),
+            None
+        );
+        assert_eq!(
+            original_player_contact_transform(
+                0x13,
+                &crate::level::ORIGINAL_PLAYER_CONTACT_SELECTORS_0X42[..2]
+            ),
+            None
         );
     }
 
