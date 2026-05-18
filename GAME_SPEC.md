@@ -501,14 +501,14 @@ uses `FUN_1000_06ab(3, 3, max, first - 1, active)`.
 The cleanup/death animation setup at the bottom of `FUN_1000_6053` uses
 `FUN_1000_06ab(1, 2, [0x6d], selector, active)`, where `selector` is the
 low-memory byte at `0x6a` for object ids below `0x13` and `0x6c` otherwise.
-Those low-memory byte values are only read in the available decompiled export;
-the repo does not contain the original image bytes needed to recover the actual
-numeric frame values.
+Those low-memory bytes are recovered from `assets/LEZAC.EXE`: `0x6a = 0x45`,
+`0x6c = 0x4a`, and `0x6d = 0x4f`.
 The selector application helper `FUN_1000_5a75(selector)` copies a 4-byte
 selector-table entry into the active offset table, then stores
 `0x10 - entry[1]` into object byte `0x14`. The Rust port pins this arithmetic
 as `OriginalSpriteSelectorEntry::position_origin_offset`; the selector table
-contents themselves remain unavailable without the original binary image.
+contents themselves appear to be runtime-loaded or otherwise outside the static
+initialized bytes recovered from `assets/LEZAC.EXE`.
 
 `FUN_1000_432a` can overwrite the `0x79f5`/`0x79f7` words before movement uses them, so the Rust port exposes the initial copied words as `MonsterMotionRuntimeFields` while the exact state-machine calls and preprocessing are still being mapped.
 

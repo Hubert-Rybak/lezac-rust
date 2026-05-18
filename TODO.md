@@ -216,7 +216,8 @@ Font rendering is now correct.
   use `0x6c`, and both use max byte `0x6d` ✅
 - `FUN_1000_5a75` selector application now has its recoverable byte `0x14`
   arithmetic pinned: the original stores `0x10 - selector_entry[1]`; the actual
-  selector table bytes remain unavailable without the original binary image 🟡
+  selector table bytes appear runtime-loaded or otherwise outside the static
+  initialized bytes recovered from `assets/LEZAC.EXE` 🟡
 - `FUN_1000_5872` motion accumulator behavior is pinned as a pure helper ✅
 - The non-`-1` random preprocessing branch of `FUN_1000_432a` is pinned with
   injected random words ✅
@@ -468,7 +469,7 @@ Font rendering is now correct.
 | PROVA.SPR | 1B count + per-sprite (w,h,pixels) | ✅ Done |
 | BOMOMIMK.SPR | Same as above | ✅ Done |
 | FONTS.SPR | Same; 26×10×10 + 42×8×8 | ✅ Done |
-| LIVELS.SCH | 8B header + 2× RLE tile layers + entity data | Tiles/entities/spawn-controller fields ✅, live delayed spawning still needs original low-memory tables |
+| LIVELS.SCH | 8B header + 2× RLE tile layers + entity data | Tiles/entities/spawn-controller fields ✅, low-memory spawn tables recovered; live delayed spawning still needs lifecycle wiring |
 | RECS.DAT | 7 × 13-byte records | ✅ Done |
 | GRAN.MST | Count + 7×38-byte templates + trailing tables | Templates/sprite bases/runtime motion/animation blocks ✅, shipped `0x1f` and `0x1e` paths live; full original state machine still incomplete |
 | CARO.CAR | Raw 132×64 title card with 2-byte header | ✅ Done |
