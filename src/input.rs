@@ -16,7 +16,8 @@ impl PlayerInput {
         let left = is_key_down(KeyCode::Z);
         let right = is_key_down(KeyCode::X);
         PlayerInput {
-            left, right,
+            left,
+            right,
             down: is_key_down(KeyCode::C),
             jump: is_key_down(KeyCode::M),
             fire: is_key_pressed(KeyCode::N),
@@ -28,13 +29,16 @@ impl PlayerInput {
         let left = is_key_down(KeyCode::Left);
         let right = is_key_down(KeyCode::Right);
         PlayerInput {
-            left, right,
+            left,
+            right,
             down: is_key_down(KeyCode::Down),
             jump: is_key_down(KeyCode::Up),
-            fire: is_key_pressed(KeyCode::Key0) || is_key_pressed(KeyCode::Kp0),
+            fire: is_key_pressed(KeyCode::Kp0),
             weapon_change: is_key_pressed(KeyCode::Left) && is_key_down(KeyCode::Right)
                 || is_key_pressed(KeyCode::Right) && is_key_down(KeyCode::Left),
         }
     }
-    pub fn change_weapon(&self) -> bool { self.weapon_change }
+    pub fn change_weapon(&self) -> bool {
+        self.weapon_change
+    }
 }
