@@ -559,6 +559,11 @@ injected collision/path inputs: grounded positive Y velocity clears and aligns
 Y, airborne objects add capped `0x40` gravity, grounded X velocity selects the
 target word or an injected random word, open path edges can invert X, and those
 branch conditions request animation refreshes.
+When that state-3 refresh runs with non-zero X velocity, the original selects
+fixed-record byte `0x03` for negative X or byte `0x04` for positive X, indexes
+the low-memory range table at `0x58/0x59`, then rewrites active animation bytes
+`0x16..0x18` as `[frame_min, frame_min, frame_max]`. The Rust port pins this
+range-selection rewrite as a pure helper against the recovered table.
 `FUN_1000_6053` state `4` is pinned with injected target/random velocity
 results: support/top collision can clear or bounce Y velocity, the branch only
 updates velocity when the frame counter is divisible by runtime word `0x0e`,

@@ -191,6 +191,14 @@ struct OriginalState3MotionResponse {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct OriginalState3AnimationRangeUpdate {
+    selector_id: u8,
+    frame: u8,
+    frame_min: u8,
+    frame_max: u8,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct OriginalState4MotionResponse {
     x_velocity_word: i16,
     y_velocity_word: i16,
@@ -288,6 +296,28 @@ fn original_state3_motion_response(
         y_position_word,
         animation_refresh_requested,
     }
+}
+
+fn original_state3_animation_range_update(
+    x_velocity_word: i16,
+    negative_x_selector_id: u8,
+    positive_x_selector_id: u8,
+    animation_ranges_0x58: &[(u8, u8)],
+) -> Option<OriginalState3AnimationRangeUpdate> {
+    let selector_id = if x_velocity_word < 0 {
+        negative_x_selector_id
+    } else if x_velocity_word > 0 {
+        positive_x_selector_id
+    } else {
+        return None;
+    };
+    let (frame_min, frame_max) = *animation_ranges_0x58.get(selector_id as usize)?;
+    Some(OriginalState3AnimationRangeUpdate {
+        selector_id,
+        frame: frame_min,
+        frame_min,
+        frame_max,
+    })
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1702,6 +1732,56 @@ mod tests {
                 y_position_word: 0x0120,
                 animation_refresh_requested: true,
             }
+        );
+    }
+
+    #[test]
+    fn original_state3_animation_range_update_matches_fun_1000_6053_rewrite() {
+        assert_eq!(
+            original_state3_animation_range_update(
+                -0x0100,
+                3,
+                4,
+                &crate::level::ORIGINAL_ANIMATION_RANGES_0X58
+            ),
+            Some(OriginalState3AnimationRangeUpdate {
+                selector_id: 3,
+                frame: 0x01,
+                frame_min: 0x01,
+                frame_max: 0x02,
+            })
+        );
+        assert_eq!(
+            original_state3_animation_range_update(
+                0x0100,
+                3,
+                4,
+                &crate::level::ORIGINAL_ANIMATION_RANGES_0X58
+            ),
+            Some(OriginalState3AnimationRangeUpdate {
+                selector_id: 4,
+                frame: 0x22,
+                frame_min: 0x22,
+                frame_max: 0x27,
+            })
+        );
+        assert_eq!(
+            original_state3_animation_range_update(
+                0,
+                3,
+                4,
+                &crate::level::ORIGINAL_ANIMATION_RANGES_0X58
+            ),
+            None
+        );
+        assert_eq!(
+            original_state3_animation_range_update(
+                -0x0100,
+                0xff,
+                4,
+                &crate::level::ORIGINAL_ANIMATION_RANGES_0X58
+            ),
+            None
         );
     }
 

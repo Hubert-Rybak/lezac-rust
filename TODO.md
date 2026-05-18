@@ -263,6 +263,10 @@ Font rendering is now correct.
   helper with injected collision/path decisions and random X word: grounded
   landing alignment, gravity cap, target/random horizontal velocity selection,
   edge/path inversion, and animation-refresh gating ✅
+- State-3 animation range rewrites are pinned: negative X uses fixed-record
+  byte `0x03`, positive X uses byte `0x04`, and the selected low-memory
+  `0x58/0x59` pair rewrites active bytes `0x16..0x18` as
+  `[frame_min, frame_min, frame_max]` ✅
 - The deterministic shell of `FUN_1000_6053` state `4` is pinned as a pure
   helper with injected target/random velocity words: support/top bounce, frame
   period gate, target-distance threshold, homing velocity selection, and
@@ -411,8 +415,9 @@ Font rendering is now correct.
 - **Sprite indices**: Player directional ranges now match PROVA.SPR; monster
   sprite bases and GRAN.MST animation seed bytes are decoded, and the original
   counter/wrap/bounce/mode-3 restore helper is now used by live original-backed
-  monsters; remaining work is the original state transitions that rewrite the
-  active/backup animation blocks.
+  monsters; state-3 active range rewrites are pinned. Remaining work is the
+  other original state transitions that rewrite the active/backup animation
+  blocks.
 - **Bomb sprites**: placed bombs and HUD selection now use original
   `bomb_type + 0x39` PROVA.SPR sprites 58–61 ✅
 - **Explosion sprites**: active explosions now use the PROVA.SPR 40–43
