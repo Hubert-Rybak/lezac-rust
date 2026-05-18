@@ -254,6 +254,10 @@ Font rendering is now correct.
 - The deterministic `FUN_1000_5cb0` velocity response is pinned as a pure
   helper: bottom-clear gravity adds `0x40` before blocked axes bounce with
   `velocity = -(velocity / 2)` ✅
+- The deterministic shell of `FUN_1000_6053` state `3` is pinned as a pure
+  helper with injected collision/path decisions and random X word: grounded
+  landing alignment, gravity cap, target/random horizontal velocity selection,
+  edge/path inversion, and animation-refresh gating ✅
 - Live object-id `0x1e`, state-6 monsters now use the pinned deterministic
   `FUN_1000_5cb0` scan, velocity response, and signed 8.8 position advance ✅
 - The deterministic `FUN_1000_5cb0` damage scan is pinned: it counts `0x75`

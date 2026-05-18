@@ -547,6 +547,12 @@ random/trig values before applying them, mirroring the original per-frame
 `FUN_1000_432a` rewrite step. The live `0x1f` update path now feeds bounded
 records with high-word values from `OriginalRng` and feeds absolute records with
 a 128-phase `f64` sine table scaled to signed 8.8 motion words. The original
+`FUN_1000_6053` state `3` deterministic motion response is also pinned with
+injected collision/path inputs: grounded positive Y velocity clears and aligns
+Y, airborne objects add capped `0x40` gravity, grounded X velocity selects the
+target word or an injected random word, open path edges can invert X, and those
+branch conditions request animation refreshes.
+The original
 initialization path builds a 128-entry table of 6-byte Turbo Pascal real values
 at `0x7bda` in `FUN_1000_26e8`; `FUN_1000_432a` loads those real entries with
 `FUN_1920_0f0f`, applies the Pascal real helper path, and converts them back to

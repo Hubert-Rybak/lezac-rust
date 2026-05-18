@@ -174,6 +174,14 @@ struct OriginalState2MotionResponse {
     y_position_word: i16,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct OriginalState3MotionResponse {
+    x_velocity_word: i16,
+    y_velocity_word: i16,
+    y_position_word: i16,
+    animation_refresh_requested: bool,
+}
+
 fn original_state2_motion_response(
     grounded: bool,
     x_velocity_word: i16,
@@ -201,6 +209,68 @@ fn original_state2_motion_response(
         x_velocity_word,
         y_velocity_word,
         y_position_word,
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct OriginalState3CollisionInputs {
+    grounded: bool,
+    left_blocked: bool,
+    right_blocked: bool,
+    negative_direction_path_clear: bool,
+    positive_direction_path_clear: bool,
+}
+
+fn original_state3_motion_response(
+    collision: OriginalState3CollisionInputs,
+    x_velocity_word: i16,
+    y_velocity_word: i16,
+    y_position_word: i16,
+    target_ground_x_velocity_word: i16,
+    random_x_velocity_word: i16,
+) -> OriginalState3MotionResponse {
+    let mut x_velocity_word = x_velocity_word;
+    let mut y_velocity_word = y_velocity_word;
+    let mut y_position_word = y_position_word;
+    let mut animation_refresh_requested = collision.left_blocked || collision.right_blocked;
+
+    if collision.grounded && -1 < y_velocity_word {
+        if 0 < y_velocity_word {
+            y_velocity_word = 0;
+            y_position_word &= !0x0007;
+            animation_refresh_requested = true;
+        }
+    } else {
+        y_velocity_word = (y_velocity_word + POWERUP_GRAVITY_WORD).min(POWERUP_MAX_FALL_WORD);
+    }
+
+    if collision.grounded {
+        if x_velocity_word == 0 {
+            x_velocity_word = target_ground_x_velocity_word;
+        } else if x_velocity_word.abs() != target_ground_x_velocity_word {
+            x_velocity_word = random_x_velocity_word;
+            animation_refresh_requested = true;
+        }
+
+        if collision.negative_direction_path_clear || collision.positive_direction_path_clear {
+            animation_refresh_requested = true;
+        }
+        if !collision.negative_direction_path_clear || !collision.positive_direction_path_clear {
+            if x_velocity_word < 0 {
+                if collision.negative_direction_path_clear {
+                    x_velocity_word = -x_velocity_word;
+                }
+            } else if collision.positive_direction_path_clear {
+                x_velocity_word = -x_velocity_word;
+            }
+        }
+    }
+
+    OriginalState3MotionResponse {
+        x_velocity_word,
+        y_velocity_word,
+        y_position_word,
+        animation_refresh_requested,
     }
 }
 
@@ -1433,6 +1503,93 @@ mod tests {
                 x_velocity_word: 0x0100,
                 y_velocity_word: 0x07ff,
                 y_position_word: 0x0127,
+            }
+        );
+    }
+
+    #[test]
+    fn original_state3_motion_response_matches_fun_1000_6053_ground_rules() {
+        assert_eq!(
+            original_state3_motion_response(
+                OriginalState3CollisionInputs {
+                    grounded: true,
+                    negative_direction_path_clear: false,
+                    positive_direction_path_clear: false,
+                    ..OriginalState3CollisionInputs::default()
+                },
+                0,
+                0x0040,
+                0x0125,
+                0x0030,
+                -0x0040,
+            ),
+            OriginalState3MotionResponse {
+                x_velocity_word: 0x0030,
+                y_velocity_word: 0,
+                y_position_word: 0x0120,
+                animation_refresh_requested: true,
+            }
+        );
+        assert_eq!(
+            original_state3_motion_response(
+                OriginalState3CollisionInputs {
+                    grounded: false,
+                    ..OriginalState3CollisionInputs::default()
+                },
+                0x0030,
+                0x07f0,
+                0x0125,
+                0x0030,
+                -0x0040,
+            )
+            .y_velocity_word,
+            0x07ff
+        );
+    }
+
+    #[test]
+    fn original_state3_motion_response_matches_fun_1000_6053_horizontal_rules() {
+        assert_eq!(
+            original_state3_motion_response(
+                OriginalState3CollisionInputs {
+                    grounded: true,
+                    negative_direction_path_clear: true,
+                    positive_direction_path_clear: false,
+                    ..OriginalState3CollisionInputs::default()
+                },
+                -0x0030,
+                0,
+                0x0120,
+                0x0030,
+                0x0055,
+            ),
+            OriginalState3MotionResponse {
+                x_velocity_word: 0x0030,
+                y_velocity_word: 0,
+                y_position_word: 0x0120,
+                animation_refresh_requested: true,
+            }
+        );
+        assert_eq!(
+            original_state3_motion_response(
+                OriginalState3CollisionInputs {
+                    grounded: true,
+                    left_blocked: true,
+                    negative_direction_path_clear: false,
+                    positive_direction_path_clear: false,
+                    ..OriginalState3CollisionInputs::default()
+                },
+                0x0020,
+                0,
+                0x0120,
+                0x0030,
+                -0x0055,
+            ),
+            OriginalState3MotionResponse {
+                x_velocity_word: -0x0055,
+                y_velocity_word: 0,
+                y_position_word: 0x0120,
+                animation_refresh_requested: true,
             }
         );
     }
