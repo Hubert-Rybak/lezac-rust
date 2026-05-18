@@ -183,6 +183,32 @@ struct OriginalState2MotionResponse {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum OriginalState0LandingBackupAction {
+    SetupIdle(MonsterAnimationSeed),
+    CopyActiveToBackup,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct OriginalState0LandingResponse {
+    y_velocity_word: i16,
+    y_position_word: i16,
+    backup_action: Option<OriginalState0LandingBackupAction>,
+    active_landing_animation: Option<MonsterAnimationSeed>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct OriginalState0LandingInputs {
+    grounded: bool,
+    y_velocity_word: i16,
+    y_position_word: i16,
+    active_frame_min: u8,
+    active_animation_mode: u8,
+    idle_frame: u8,
+    landing_first_frame: u8,
+    landing_frame_max: u8,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct OriginalState3MotionResponse {
     x_velocity_word: i16,
     y_velocity_word: i16,
@@ -204,6 +230,49 @@ struct OriginalState4MotionResponse {
     y_velocity_word: i16,
     velocity_update_requested: bool,
     used_homing_velocity: bool,
+}
+
+fn original_state0_landing_response(
+    inputs: OriginalState0LandingInputs,
+) -> OriginalState0LandingResponse {
+    let mut y_velocity_word = inputs.y_velocity_word;
+    let mut y_position_word = inputs.y_position_word;
+    let mut backup_action = None;
+    let mut active_landing_animation = None;
+
+    if inputs.grounded && -1 < y_velocity_word {
+        if 0 < y_velocity_word {
+            y_position_word &= !0x0007;
+            if y_velocity_word < 0x0641 {
+                y_velocity_word = 0;
+            } else {
+                if inputs.active_frame_min != inputs.landing_first_frame {
+                    backup_action = Some(if inputs.active_animation_mode == 0 {
+                        OriginalState0LandingBackupAction::SetupIdle(
+                            MonsterAnimationSeed::from_original_landing_backup(inputs.idle_frame),
+                        )
+                    } else {
+                        OriginalState0LandingBackupAction::CopyActiveToBackup
+                    });
+                    active_landing_animation =
+                        Some(MonsterAnimationSeed::from_original_landing_active(
+                            inputs.landing_first_frame,
+                            inputs.landing_frame_max,
+                        ));
+                }
+                y_velocity_word = -y_velocity_word / 4;
+            }
+        }
+    } else {
+        y_velocity_word = (y_velocity_word + POWERUP_GRAVITY_WORD).min(POWERUP_MAX_FALL_WORD);
+    }
+
+    OriginalState0LandingResponse {
+        y_velocity_word,
+        y_position_word,
+        backup_action,
+        active_landing_animation,
+    }
 }
 
 fn original_state2_motion_response(
@@ -1610,6 +1679,92 @@ mod tests {
         assert_eq!(original_ground_friction_velocity_word(-0x2b), -1);
         assert_eq!(original_ground_friction_velocity_word(0x0100), 0x00d6);
         assert_eq!(original_ground_friction_velocity_word(-0x0100), -0x00d6);
+    }
+
+    #[test]
+    fn original_state0_landing_response_matches_fun_1000_6053_threshold_and_animation() {
+        assert_eq!(
+            original_state0_landing_response(OriginalState0LandingInputs {
+                grounded: true,
+                y_velocity_word: 0x0640,
+                y_position_word: 0x0127,
+                active_frame_min: 0x20,
+                active_animation_mode: 0,
+                idle_frame: 0x01,
+                landing_first_frame: 0x12,
+                landing_frame_max: 0x12,
+            }),
+            OriginalState0LandingResponse {
+                y_velocity_word: 0,
+                y_position_word: 0x0120,
+                backup_action: None,
+                active_landing_animation: None,
+            }
+        );
+        assert_eq!(
+            original_state0_landing_response(OriginalState0LandingInputs {
+                grounded: true,
+                y_velocity_word: 0x0641,
+                y_position_word: 0x0127,
+                active_frame_min: 0x20,
+                active_animation_mode: 0,
+                idle_frame: 0x01,
+                landing_first_frame: 0x12,
+                landing_frame_max: 0x12,
+            }),
+            OriginalState0LandingResponse {
+                y_velocity_word: -(0x0641 / 4),
+                y_position_word: 0x0120,
+                backup_action: Some(OriginalState0LandingBackupAction::SetupIdle(
+                    MonsterAnimationSeed::from_original_landing_backup(0x01)
+                )),
+                active_landing_animation: Some(MonsterAnimationSeed::from_original_landing_active(
+                    0x12, 0x12
+                )),
+            }
+        );
+        assert_eq!(
+            original_state0_landing_response(OriginalState0LandingInputs {
+                grounded: true,
+                y_velocity_word: 0x0800,
+                y_position_word: 0x0127,
+                active_frame_min: 0x20,
+                active_animation_mode: 3,
+                idle_frame: 0x01,
+                landing_first_frame: 0x12,
+                landing_frame_max: 0x13,
+            })
+            .backup_action,
+            Some(OriginalState0LandingBackupAction::CopyActiveToBackup)
+        );
+        assert_eq!(
+            original_state0_landing_response(OriginalState0LandingInputs {
+                grounded: true,
+                y_velocity_word: 0x0800,
+                y_position_word: 0x0127,
+                active_frame_min: 0x12,
+                active_animation_mode: 3,
+                idle_frame: 0x01,
+                landing_first_frame: 0x12,
+                landing_frame_max: 0x13,
+            })
+            .active_landing_animation,
+            None
+        );
+        assert_eq!(
+            original_state0_landing_response(OriginalState0LandingInputs {
+                grounded: false,
+                y_velocity_word: 0x07f0,
+                y_position_word: 0x0127,
+                active_frame_min: 0x20,
+                active_animation_mode: 0,
+                idle_frame: 0x01,
+                landing_first_frame: 0x12,
+                landing_frame_max: 0x12,
+            })
+            .y_velocity_word,
+            0x07ff
+        );
     }
 
     #[test]

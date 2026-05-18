@@ -211,6 +211,9 @@ Font rendering is now correct.
   `[min, min, max, delay, delay, mode, 1]` block constructor ✅
 - The two `FUN_1000_6053` landing animation setup call shapes are named as
   pure helpers for backup-idle and active landing blocks ✅
+- The state-0 landing decision that triggers those blocks is pinned: 8-pixel Y
+  alignment, `0x641` hard-landing threshold, `-velocity / 4` bounce, and
+  backup-idle vs copy-active backup action ✅
 - The `FUN_1000_6053` cleanup animation selector branch is pinned as a
   parameterized helper: object ids `< 0x13` use low-memory byte `0x6a`, others
   use `0x6c`, and both use max byte `0x6d` ✅
@@ -425,7 +428,8 @@ Font rendering is now correct.
 - **Powerup sprites**: known bonus ids now draw from the original
   `BOMOMIMK.SPR` collectible tile range `0x13..` ✅
 - **Physics**: Player gravity/jump/movement and the original `0x641`
-  landing-bounce cutoff use fixed-point-derived constants ✅
+  landing-bounce cutoff use fixed-point-derived constants; state-0 original
+  landing/bounce animation decisions are pinned at the word level ✅
   Monster gravity now uses the `FUN_1000_5102` signed-byte accumulator scale ✅
   Monster signed 8.8 axis stepping is pinned with tests ✅
   Runtime monsters retain an original-style signed 8.8 motion state ✅
@@ -482,6 +486,36 @@ Font rendering is now correct.
 - High score serialization helper writes original `RECS.DAT` layout and
   preserves the full 32-bit score word pair used by the decompiled ranking path ✅
 - Game over/all-levels-complete → new high score entry screen with `RECS.DAT` save ✅
+
+---
+
+## Remaining Tasks For 1:1
+
+- Recover bit-exact Turbo Pascal real math for `FUN_1000_26e8`/`FUN_1000_432a`
+  trig preprocessing. The current 128-phase table preserves quadrant,
+  anti-symmetry, and call order, but still uses an `f64` sine approximation
+  rather than the original 6-byte real helper rounding.
+- Finish extracting `FUN_1000_6053` state-machine branches beyond the shipped
+  live paths. Current shipped spawns route through original-backed `0x1f`
+  motion and `0x1e` state-6 logic, while non-shipped/dev template states still
+  fall back to older Rust placeholder movement.
+- Live-wire the pinned pure helpers for state-0/state-2/state-3/state-4 into a
+  complete original entity update path once the surrounding collision sampling,
+  player-distance selection, tile side effects, and animation rewrite ordering
+  are fully mapped.
+- Resolve the remaining GRAN.MST fixed-record byte `0x05` role from stronger
+  evidence. It is preserved and its shipped values are pinned, but no direct
+  fixed-template read has been recovered from `FUN_1000_6053` yet.
+- Complete original animation block rewrite coverage for every state transition.
+  Mode counters, mode-3 restore, cleanup selectors, state-3 range rewrites, and
+  state-0 landing decisions are pinned; other active/backup animation updates
+  still need extraction or live wiring.
+- Replace the helper-only legacy `spawn_monsters` path with the live
+  spawn-controller lifecycle everywhere it matters, or clearly confine it to
+  GRAN.MST/parser coverage tests.
+- Audit remaining renderer/audio/menu differences against the original DOS
+  frame timing after the entity state machine is complete, because several
+  visible timing differences depend on exact object update order.
 
 ---
 

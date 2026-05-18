@@ -511,6 +511,12 @@ also exposes that constructor for the named animation state. The two landing
 animation setup paths in `FUN_1000_6053` are also named: the backup idle block
 uses `FUN_1000_06ab(3, 2, idle, idle, backup)`, and the active landing block
 uses `FUN_1000_06ab(3, 3, max, first - 1, active)`.
+The state-0 landing decision around those calls is pinned too: grounded
+positive Y velocity aligns Y to an 8-pixel boundary; values below `0x641` snap
+to zero, while values at or above `0x641` bounce with `-velocity / 4`. On a hard
+landing whose active frame-min byte differs from the landing first frame, the
+original either initializes the backup idle block when animation mode is zero
+or copies the active block to backup, then writes the active landing block.
 The cleanup/death animation setup at the bottom of `FUN_1000_6053` uses
 `FUN_1000_06ab(1, 2, [0x6d], selector, active)`, where `selector` is the
 low-memory byte at `0x6a` for object ids below `0x13` and `0x6c` otherwise.
