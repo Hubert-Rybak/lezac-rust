@@ -474,10 +474,12 @@ Fixed-record byte `0x15` is the initial state byte read by `FUN_1000_6053` as
 `0x1e` template starts in state `6`, which dispatches to `FUN_1000_5cb0`, while
 the six object-id `0x1f` templates start in state `5`.
 For `local_33 == 5`, `FUN_1000_6053` decrements countdown byte `0x02` by
-`(frame_counter & 1)` and frees the object when the byte reaches zero; object
-id `0x0a` also decrements the original `0x208e` counter. The Rust port pins
-that countdown branch and routes live state-5 objects through it instead of
-the fallback movement path.
+`(frame_counter & 1)` after any object-id `0x1f` motion-record calls and frees
+the object when the byte reaches zero; because the `0x1f` motion branch first
+resets byte `0x02` to `0xfa`, an odd-frame state-5 tick leaves shipped `0x1f`
+objects at `0xf9`. Object id `0x0a` also decrements the original `0x208e`
+counter. The Rust port pins that countdown branch and routes live state-5
+objects through it instead of the fallback movement path.
 
 `FUN_1000_08a5` copies each 16-byte motion record to `0x79ea + n * 0x10`, then adds the active entity-table base to copied offsets 0 and 1. `FUN_1000_432a` reads copied offset 0 as an index into the X/Y offset table. `FUN_1000_5872` then reads runtime motion fields three bytes into that copied record:
 - copied offset `0x00`: X/Y offset-table anchor index

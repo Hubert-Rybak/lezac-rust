@@ -2319,6 +2319,56 @@ mod tests {
     }
 
     #[test]
+    fn object_0x1f_state5_countdown_ticks_after_original_motion() {
+        let motion = MonsterMotionRuntimeFields {
+            anchor_index: 0,
+            secondary_anchor_index: 0,
+            phase_step: 0,
+            limit_or_sentinel: -1,
+            angle_phase: 0,
+            base_x_word: 0,
+            base_y_word: 0,
+            x_word: 0x0100,
+            y_word: 0,
+            random_y_base: 0,
+        };
+        let mut monster = Monster::new(16.0, 16.0, MonsterType::Floater, 0, 0.0, 0.0, 0);
+        monster.object_id = 0x1f;
+        monster.original_state = 5;
+        monster.original_countdown_byte = 1;
+        monster.motion_sequence_ids = [1, 0, 0];
+        monster.motion_sequence_fields = [Some(motion), None, None];
+        monster.original_motion = OriginalMotionState {
+            x_px: 16,
+            y_px: 16,
+            x_fraction: 0,
+            y_fraction: 0,
+            x_velocity_word: 0,
+            y_velocity_word: 0,
+        };
+
+        monster.update_with_preprocessed_original_motion_fields(
+            &level_with_size(16, 16),
+            &[],
+            1.0 / 70.0,
+            [Some(motion), None, None],
+        );
+        assert_eq!(monster.x, 17.0);
+
+        assert_eq!(
+            monster.advance_original_state5_countdown(5),
+            Some(OriginalState5CountdownResponse {
+                countdown: 0xf9,
+                expired: false,
+                decrements_object_count: false,
+                decrements_object_0x0a_counter: false,
+            })
+        );
+        assert_eq!(monster.object_id, 0x1f);
+        assert!(monster.alive);
+    }
+
+    #[test]
     fn original_motion_state_advances_both_axes() {
         let seed = MonsterMovementSeed {
             x_velocity_word: 0x0040,

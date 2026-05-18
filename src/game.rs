@@ -601,6 +601,9 @@ impl Game {
                             dt,
                             motion_sequence_fields,
                         );
+                        if m.uses_original_state5_countdown() {
+                            m.advance_original_state5_countdown(frame_counter);
+                        }
                     }
                     OriginalDeathCountdownResult::Inactive
                         if m.uses_original_state5_countdown() =>
