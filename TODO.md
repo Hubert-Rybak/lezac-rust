@@ -335,6 +335,9 @@ Font rendering is now correct.
 - Spawn-controller timer/count/budget mutation is pinned: timer byte `0x1b`
   decrements before the zero check, resets from `0x1c` for allocation attempts,
   and count/budget bytes decrement after successful allocation ✅
+- Spawn-controller event advancement now combines the original timer gate,
+  recovered low-memory allocation tables, `FUN_1920_13a8` runtime-field RNG,
+  and post-success count/budget commit into one tested helper ✅
 - Spawn allocation request construction now has recovered original low-memory
   selector bytes `0x80/0x81` and animation range bytes `0x58/0x59` from
   `assets/LEZAC.EXE`; original table indexing and missing-table failure cases

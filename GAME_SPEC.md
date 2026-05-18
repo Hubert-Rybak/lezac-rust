@@ -119,6 +119,9 @@ Each controller tick decrements timer byte `0x1b` before testing it; when it
 reaches zero and active flag/count/budget are all non-zero, the timer is reset
 from `0x1c`. Count byte `0x09` and budget byte `0x0a` are decremented only
 after the original allocation path reports a successful spawn.
+The Rust helper `advance_original_spawn_controller` now models that whole event
+step: timer gate, recovered allocation tables, spawned runtime RNG fields, and
+post-success count/budget commit.
 The allocation request shape is now modeled with recovered low-memory tables
 from `assets/LEZAC.EXE`: `record[0x0b]` selects the pair at `0x80/0x81`, the
 first byte indexes animation range bytes at `0x58/0x59`, and `record[0x1d]`

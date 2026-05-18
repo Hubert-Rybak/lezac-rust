@@ -88,6 +88,12 @@ pub struct OriginalSpawnAllocationRequest {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct OriginalSpawnControllerEvent {
+    pub runtime_fields: OriginalSpawnRuntimeFields,
+    pub allocation_request: OriginalSpawnAllocationRequest,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct OriginalTeleportEffectRequest {
     pub target_x_px: u16,
     pub target_y_px: u16,
@@ -529,6 +535,22 @@ impl MonsterSpawn {
             &ORIGINAL_SPAWN_SELECTOR_PAIRS_0X80,
             &ORIGINAL_ANIMATION_RANGES_0X58,
         )
+    }
+    pub fn advance_original_spawn_controller(
+        &mut self,
+        original_rng: &mut OriginalRng,
+    ) -> Option<OriginalSpawnControllerEvent> {
+        if !self.original_tick_spawn_controller() {
+            return None;
+        }
+
+        let runtime_fields = self.original_spawn_runtime_fields(original_rng);
+        let allocation_request = self.original_spawn_allocation_request_from_original_tables()?;
+        self.original_commit_spawn_success();
+        Some(OriginalSpawnControllerEvent {
+            runtime_fields,
+            allocation_request,
+        })
     }
 }
 
@@ -2313,6 +2335,63 @@ mod tests {
         spawn.raw[0x09] = 0;
         assert!(!spawn.original_tick_spawn_controller());
         assert_eq!(spawn.original_spawn_timer(), 0);
+    }
+
+    #[test]
+    fn monster_spawn_controller_event_combines_original_timer_tables_and_rng() {
+        let mut raw = [0; 30];
+        raw[0x00..0x02].copy_from_slice(&0x0150_u16.to_le_bytes());
+        raw[0x02..0x04].copy_from_slice(&0x00a8_u16.to_le_bytes());
+        raw[0x08] = 1;
+        raw[0x09] = 2;
+        raw[0x0a] = 3;
+        raw[0x0b] = 4;
+        raw[0x0c..0x0e].copy_from_slice(&10_u16.to_le_bytes());
+        raw[0x0e..0x10].copy_from_slice(&5_u16.to_le_bytes());
+        raw[0x10..0x12].copy_from_slice(&20_u16.to_le_bytes());
+        raw[0x12..0x14].copy_from_slice(&7_u16.to_le_bytes());
+        raw[0x14..0x16].copy_from_slice(&30_u16.to_le_bytes());
+        raw[0x16..0x18].copy_from_slice(&11_u16.to_le_bytes());
+        raw[0x18] = 4;
+        raw[0x19] = 3;
+        raw[0x1a] = 3;
+        raw[0x1b] = 1;
+        raw[0x1c] = 0x3c;
+        raw[0x1d] = 2;
+        let mut spawn = MonsterSpawn { raw };
+
+        let seed = 0x0bad_cafe;
+        let mut expected_rng = OriginalRng::new(seed);
+        let expected_runtime = OriginalSpawnRuntimeFields {
+            word_0x0e: 10 + expected_rng.gen_mod(5),
+            word_0x10: 20 + expected_rng.gen_mod(7),
+            word_0x12: 30 + expected_rng.gen_mod(11),
+            vitality: 4 + expected_rng.gen_mod(3) as u8,
+        };
+
+        let mut rng = OriginalRng::new(seed);
+        let event = spawn.advance_original_spawn_controller(&mut rng).unwrap();
+
+        assert_eq!(event.runtime_fields, expected_runtime);
+        assert_eq!(rng.seed(), expected_rng.seed());
+        assert_eq!(spawn.original_spawn_timer(), 0x3c);
+        assert_eq!(spawn.original_spawn_count(), 1);
+        assert_eq!(spawn.original_spawn_budget(), 2);
+        assert_eq!(
+            event.allocation_request,
+            OriginalSpawnAllocationRequest {
+                x_px: 0x0150,
+                y_px: 0x00a8,
+                template_selector: 4,
+                allocation_param: 3,
+                selector_table_byte_0x80: 0x0d,
+                selector_table_byte_0x81: 0x0d,
+                animation_seed: MonsterAnimationSeed::from_original_setup(1, 2, 0x38, 0x36),
+            }
+        );
+
+        assert!(spawn.advance_original_spawn_controller(&mut rng).is_none());
+        assert_eq!(rng.seed(), expected_rng.seed());
     }
 
     #[test]
