@@ -107,10 +107,9 @@ MonsterEntry (30 bytes):
   0x1b        original spawn timer, decremented every frame by the loader/update path
   0x1c        original timer reset copied into `0x1b` when the spawn path runs
   0x1d        animation delay passed to `FUN_1000_06ab` for the spawned object
-  remaining fields are still being named. The current live bridge still uses
-              byte `0x04` as a temporary template seed for direct spawned
-              monsters until the full original spawn-controller lifecycle is
-              wired.
+  remaining fields are still being named. The live bridge now advances mutable
+              controller copies and materializes original allocation events;
+              helper-only direct spawning remains for GRAN.MST coverage tests.
 
 The recovered spawn path computes spawned runtime words `0x0e`, `0x10`, and
 `0x12` as `base + FUN_1920_13a8(random_modulus)`, then computes spawned
