@@ -246,6 +246,9 @@ Font rendering is now correct.
   (`local_33` in `FUN_1000_6053`): shipped templates are `[6,5,5,5,5,5,5]`,
   with the lone object-id `0x1e` entity entering the `FUN_1000_5cb0` state-6
   path ✅
+- The `local_33 == 5` countdown branch is pinned and live-routed: countdown
+  byte `0x02` decrements by `(frame_counter & 1)`, zero expires the object, and
+  object id `0x0a` carries the extra original `0x208e` decrement flag ✅
 - For that state-6 `0x1e` path, bytes `0x0e..0x0f` are decoded separately as
   the `FUN_1000_5cb0` tile scan rectangle size; the shipped object uses `5 × 4`
   tiles ✅

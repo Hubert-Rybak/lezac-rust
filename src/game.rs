@@ -602,6 +602,11 @@ impl Game {
                             motion_sequence_fields,
                         );
                     }
+                    OriginalDeathCountdownResult::Inactive
+                        if m.uses_original_state5_countdown() =>
+                    {
+                        m.advance_original_state5_countdown(frame_counter);
+                    }
                     OriginalDeathCountdownResult::Inactive => {
                         if m.apply_state6_random_impulse(
                             &self.levels[li],

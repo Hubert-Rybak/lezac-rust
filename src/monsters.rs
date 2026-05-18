@@ -88,6 +88,14 @@ struct OriginalLowObjectDamageResponse {
     outcome: OriginalLowObjectDamageOutcome,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct OriginalState5CountdownResponse {
+    pub countdown: u8,
+    pub expired: bool,
+    pub decrements_object_count: bool,
+    pub decrements_object_0x0a_counter: bool,
+}
+
 fn state6_scan_collision_flags(
     level: &Level,
     x_px: i16,
@@ -356,6 +364,26 @@ fn original_four_tile_damage_scan(
     }
 
     scan
+}
+
+pub fn original_state5_countdown_response(
+    object_id: u8,
+    original_state: u8,
+    countdown: u8,
+    frame_counter: u32,
+) -> Option<OriginalState5CountdownResponse> {
+    if original_state != 5 {
+        return None;
+    }
+
+    let countdown = countdown.wrapping_sub((frame_counter as u8) & 1);
+    let expired = countdown == 0;
+    Some(OriginalState5CountdownResponse {
+        countdown,
+        expired,
+        decrements_object_count: expired,
+        decrements_object_0x0a_counter: expired && object_id == 0x0a,
+    })
 }
 
 fn original_low_object_damage_response(
@@ -931,6 +959,10 @@ impl Monster {
             && self.state6_collision_size_tiles.is_some()
     }
 
+    pub fn uses_original_state5_countdown(&self) -> bool {
+        self.original_state == 5 && self.object_id != 0
+    }
+
     fn clamp_to_level(&mut self, level: &Level) {
         let mx = (level.width as f32 * TILE_SIZE) - 16.0;
         let my = (level.height as f32 * TILE_SIZE) - 16.0;
@@ -993,6 +1025,25 @@ impl Monster {
         self.original_death_timer = 0x12;
         self.original_countdown_byte = 0x12;
         OriginalDeathCountdownResult::Cleaned { effect_count }
+    }
+
+    pub fn advance_original_state5_countdown(
+        &mut self,
+        frame_counter: u32,
+    ) -> Option<OriginalState5CountdownResponse> {
+        let response = original_state5_countdown_response(
+            self.object_id,
+            self.original_state,
+            self.original_countdown_byte,
+            frame_counter,
+        )?;
+        self.original_countdown_byte = response.countdown;
+        if response.expired {
+            self.object_id = 0;
+            self.original_state = 0;
+            self.alive = false;
+        }
+        Some(response)
     }
 
     pub fn sprite_index(&self) -> usize {
@@ -2204,6 +2255,67 @@ mod tests {
             monster.advance_original_death_countdown(7),
             OriginalDeathCountdownResult::Inactive
         );
+    }
+
+    #[test]
+    fn original_state5_countdown_matches_fun_1000_6053_branch() {
+        assert_eq!(
+            original_state5_countdown_response(0x0b, 5, 2, 2),
+            Some(OriginalState5CountdownResponse {
+                countdown: 2,
+                expired: false,
+                decrements_object_count: false,
+                decrements_object_0x0a_counter: false,
+            })
+        );
+        assert_eq!(
+            original_state5_countdown_response(0x0b, 5, 2, 3),
+            Some(OriginalState5CountdownResponse {
+                countdown: 1,
+                expired: false,
+                decrements_object_count: false,
+                decrements_object_0x0a_counter: false,
+            })
+        );
+        assert_eq!(
+            original_state5_countdown_response(0x0a, 5, 1, 5),
+            Some(OriginalState5CountdownResponse {
+                countdown: 0,
+                expired: true,
+                decrements_object_count: true,
+                decrements_object_0x0a_counter: true,
+            })
+        );
+        assert_eq!(original_state5_countdown_response(0x0b, 2, 1, 5), None);
+    }
+
+    #[test]
+    fn state5_live_update_ticks_original_countdown_without_placeholder_motion() {
+        let level = level_with_size(16, 16);
+        let mut monster = Monster::new(32.0, 40.0, MonsterType::Walker, 0x2e, 3.0, 0.0, 0);
+        monster.object_id = 0x0b;
+        monster.original_state = 5;
+        monster.original_countdown_byte = 1;
+
+        assert!(monster.uses_original_state5_countdown());
+        assert_eq!(
+            monster.advance_original_state5_countdown(5),
+            Some(OriginalState5CountdownResponse {
+                countdown: 0,
+                expired: true,
+                decrements_object_count: true,
+                decrements_object_0x0a_counter: false,
+            })
+        );
+        assert_eq!(monster.x, 32.0);
+        assert_eq!(monster.y, 40.0);
+        assert_eq!(monster.object_id, 0);
+        assert_eq!(monster.original_state, 0);
+        assert!(!monster.alive);
+
+        monster.update(&level, &[], 1.0 / 70.0);
+        assert_eq!(monster.x, 32.0);
+        assert_eq!(monster.y, 40.0);
     }
 
     #[test]
