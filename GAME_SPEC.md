@@ -122,6 +122,10 @@ after the original allocation path reports a successful spawn.
 The Rust helper `advance_original_spawn_controller` now models that whole event
 step: timer gate, recovered allocation tables, spawned runtime RNG fields, and
 post-success count/budget commit.
+The live game loop stores mutable copies of those controllers per level and
+advances them while playing; successful events are materialized as runtime
+monsters carrying the recovered object id, state byte, vitality, animation seed,
+and original position/velocity words.
 The allocation request shape is now modeled with recovered low-memory tables
 from `assets/LEZAC.EXE`: `record[0x0b]` selects the pair at `0x80/0x81`, the
 first byte indexes animation range bytes at `0x58/0x59`, and `record[0x1d]`

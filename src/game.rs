@@ -105,6 +105,7 @@ pub struct Game {
     pub monster_motion_runtime_fields: Vec<MonsterMotionRuntimeFields>,
     pub players: Vec<Player>,
     pub monsters: Vec<Monster>,
+    pub monster_spawn_controllers: Vec<MonsterSpawn>,
     pub bombs: Vec<Bomb>,
     pub debris: Vec<Debris>,
     pub powerups: Vec<Powerup>,
@@ -155,6 +156,7 @@ impl Game {
             monster_defs,
             players: Vec::new(),
             monsters: Vec::new(),
+            monster_spawn_controllers: Vec::new(),
             bombs: Vec::new(),
             debris: Vec::new(),
             powerups: Vec::new(),
@@ -215,7 +217,8 @@ impl Game {
             p.bonuses_collected = 0;
             p.respawn(self.p2_start_x, self.p2_start_y);
         }
-        self.monsters = spawn_monsters(&self.levels[li], &self.monster_defs, li);
+        self.monsters.clear();
+        self.monster_spawn_controllers = self.levels[li].monsters.clone();
         self.monster_motion_runtime_fields =
             monster_motion_runtime_fields_from_templates(&self.monster_defs);
         self.bombs.clear();
@@ -545,6 +548,7 @@ impl Game {
         self.bombs
             .retain(|b| !b.exploding || b.explosion_timer > 0.0);
         self.update_collapsing(li, dt);
+        self.update_original_spawn_controllers();
 
         let ps: Vec<Player> = self.players.clone();
         let mut monster_hit_counts = vec![0_u8; self.players.len()];
@@ -720,6 +724,43 @@ impl Game {
                 life: 1.25,
             });
         }
+    }
+
+    fn update_original_spawn_controllers(&mut self) {
+        for controller in &mut self.monster_spawn_controllers {
+            if let Some(event) =
+                controller.advance_original_spawn_controller(&mut self.original_rng)
+            {
+                self.monsters
+                    .push(Self::monster_from_original_spawn_event(event));
+            }
+        }
+    }
+
+    fn monster_from_original_spawn_event(event: OriginalSpawnControllerEvent) -> Monster {
+        let request = event.allocation_request;
+        let object_id = request.template_selector;
+        let mt = MonsterType::from_id(object_id);
+        let x = request.x_px as f32;
+        let y = request.y_px as f32 - 16.0;
+        let mut monster = Monster::new(x, y, mt, mt.sprite_base(), mt.speed(), mt.damage(), 0);
+        let allocation_call = request.original_object_allocation_call();
+
+        monster.object_id = object_id;
+        monster.original_state = request.allocation_param;
+        monster.original_vitality_byte = event.runtime_fields.vitality;
+        monster.health = f32::from(event.runtime_fields.vitality);
+        monster.original_animation_seed = request.animation_seed;
+        monster.original_animation_mode = request.animation_seed.mode;
+        monster.original_motion = OriginalMotionState {
+            x_px: request.x_px as i16,
+            y_px: request.y_px as i16 - 16,
+            x_fraction: 0,
+            y_fraction: 0,
+            x_velocity_word: allocation_call.param_5_x_velocity,
+            y_velocity_word: allocation_call.param_6_y_velocity,
+        };
+        monster
     }
 
     fn process_explosion(&mut self, ex: f32, ey: f32, bt: BombType, owner: usize, li: usize) {
@@ -1331,6 +1372,73 @@ mod tests {
         assert_eq!(game.levels[0].tiles, game.levels[0].orig_tiles);
         assert_eq!(game.players[0].bonuses_collected, 0);
         assert_eq!(game.current_destruction_pct, 0.0);
+    }
+
+    #[test]
+    fn update_playing_advances_original_spawn_controllers_into_monsters() {
+        let mut level = test_level();
+        level.bonus_target = 99;
+        level.destruction_pct = 100;
+        let mut raw = [0; 30];
+        raw[0x00..0x02].copy_from_slice(&0x0150_u16.to_le_bytes());
+        raw[0x02..0x04].copy_from_slice(&0x00a8_u16.to_le_bytes());
+        raw[0x08] = 1;
+        raw[0x09] = 2;
+        raw[0x0a] = 3;
+        raw[0x0b] = 4;
+        raw[0x0c..0x0e].copy_from_slice(&10_u16.to_le_bytes());
+        raw[0x0e..0x10].copy_from_slice(&5_u16.to_le_bytes());
+        raw[0x10..0x12].copy_from_slice(&20_u16.to_le_bytes());
+        raw[0x12..0x14].copy_from_slice(&7_u16.to_le_bytes());
+        raw[0x14..0x16].copy_from_slice(&30_u16.to_le_bytes());
+        raw[0x16..0x18].copy_from_slice(&11_u16.to_le_bytes());
+        raw[0x18] = 4;
+        raw[0x19] = 3;
+        raw[0x1a] = 3;
+        raw[0x1b] = 1;
+        raw[0x1c] = 0x3c;
+        raw[0x1d] = 2;
+        level.monsters.push(MonsterSpawn { raw });
+
+        let seed = 0x0bad_cafe;
+        let mut expected_rng = OriginalRng::new(seed);
+        expected_rng.gen_mod(5);
+        expected_rng.gen_mod(7);
+        expected_rng.gen_mod(11);
+        let expected_vitality = 4 + expected_rng.gen_mod(3) as u8;
+
+        let mut game = Game::new(
+            vec![level],
+            Vec::new(),
+            Vec::new(),
+            String::new(),
+            SoundManager::new(),
+        );
+        game.players.push(Player::new(0.0, 0.0, 0));
+        game.original_rng = OriginalRng::new(seed);
+        game.start_level();
+
+        assert!(game.monsters.is_empty());
+        assert_eq!(game.monster_spawn_controllers.len(), 1);
+
+        game.update_original_spawn_controllers();
+
+        assert_eq!(game.original_rng.seed(), expected_rng.seed());
+        assert_eq!(game.monsters.len(), 1);
+        assert_eq!(game.monsters[0].object_id, 4);
+        assert_eq!(game.monsters[0].original_state, 3);
+        assert_eq!(game.monsters[0].original_vitality_byte, expected_vitality);
+        assert_eq!(game.monsters[0].health, f32::from(expected_vitality));
+        assert_eq!(
+            game.monsters[0].original_animation_seed,
+            MonsterAnimationSeed::from_original_setup(1, 2, 0x38, 0x36)
+        );
+        assert_eq!(game.monster_spawn_controllers[0].original_spawn_count(), 1);
+        assert_eq!(game.monster_spawn_controllers[0].original_spawn_budget(), 2);
+        assert_eq!(
+            game.monster_spawn_controllers[0].original_spawn_timer(),
+            0x3c
+        );
     }
 
     #[test]

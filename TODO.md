@@ -338,10 +338,13 @@ Font rendering is now correct.
 - Spawn-controller event advancement now combines the original timer gate,
   recovered low-memory allocation tables, `FUN_1920_13a8` runtime-field RNG,
   and post-success count/budget commit into one tested helper ✅
+- The live game loop now owns mutable spawn-controller records, advances them
+  during play, and materializes successful original spawn events into runtime
+  monsters with recovered animation/vitality fields ✅
 - Spawn allocation request construction now has recovered original low-memory
   selector bytes `0x80/0x81` and animation range bytes `0x58/0x59` from
   `assets/LEZAC.EXE`; original table indexing and missing-table failure cases
-  remain pinned, while live delayed spawning is still not wired ✅
+  remain pinned ✅
 - Spawn allocation requests now expose the recovered eight-argument
   `FUN_1000_2f9f` call shape used by the original spawn-controller path ✅
 - The recovered `FUN_1000_2f9f` call shape can now run through the pure
