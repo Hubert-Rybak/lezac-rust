@@ -182,6 +182,14 @@ struct OriginalState3MotionResponse {
     animation_refresh_requested: bool,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct OriginalState4MotionResponse {
+    x_velocity_word: i16,
+    y_velocity_word: i16,
+    velocity_update_requested: bool,
+    used_homing_velocity: bool,
+}
+
 fn original_state2_motion_response(
     grounded: bool,
     x_velocity_word: i16,
@@ -271,6 +279,58 @@ fn original_state3_motion_response(
         y_velocity_word,
         y_position_word,
         animation_refresh_requested,
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct OriginalState4Inputs {
+    support_blocked: bool,
+    top_blocked: bool,
+    frame_counter: u16,
+    update_period: u16,
+    velocity_range: i16,
+    target_distance_threshold: u16,
+    target_abs_distance_sum: u16,
+    homing_x_velocity_word: i16,
+    homing_y_velocity_word: i16,
+    random_x_roll: u16,
+    random_y_roll: u16,
+}
+
+fn original_state4_motion_response(
+    inputs: OriginalState4Inputs,
+    x_velocity_word: i16,
+    y_velocity_word: i16,
+) -> OriginalState4MotionResponse {
+    let mut x_velocity_word = x_velocity_word;
+    let mut y_velocity_word = y_velocity_word;
+    let mut velocity_update_requested = false;
+    let mut used_homing_velocity = false;
+
+    if inputs.support_blocked && inputs.top_blocked {
+        y_velocity_word = 0;
+    }
+    if inputs.support_blocked && 0 < y_velocity_word {
+        y_velocity_word = -y_velocity_word / 2;
+    }
+
+    if inputs.update_period != 0 && inputs.frame_counter.is_multiple_of(inputs.update_period) {
+        velocity_update_requested = true;
+        if inputs.target_abs_distance_sum < inputs.target_distance_threshold {
+            x_velocity_word = inputs.homing_x_velocity_word;
+            y_velocity_word = inputs.homing_y_velocity_word;
+            used_homing_velocity = true;
+        } else {
+            x_velocity_word = inputs.random_x_roll as i16 - inputs.velocity_range;
+            y_velocity_word = inputs.random_y_roll as i16 - inputs.velocity_range;
+        }
+    }
+
+    OriginalState4MotionResponse {
+        x_velocity_word,
+        y_velocity_word,
+        velocity_update_requested,
+        used_homing_velocity,
     }
 }
 
@@ -1590,6 +1650,110 @@ mod tests {
                 y_velocity_word: 0,
                 y_position_word: 0x0120,
                 animation_refresh_requested: true,
+            }
+        );
+    }
+
+    #[test]
+    fn original_state4_motion_response_matches_fun_1000_6053_bounce_and_gate() {
+        assert_eq!(
+            original_state4_motion_response(
+                OriginalState4Inputs {
+                    support_blocked: true,
+                    top_blocked: true,
+                    frame_counter: 3,
+                    update_period: 5,
+                    velocity_range: 40,
+                    target_distance_threshold: 100,
+                    target_abs_distance_sum: 150,
+                    homing_x_velocity_word: 11,
+                    homing_y_velocity_word: 12,
+                    random_x_roll: 30,
+                    random_y_roll: 50,
+                },
+                7,
+                0x40,
+            ),
+            OriginalState4MotionResponse {
+                x_velocity_word: 7,
+                y_velocity_word: 0,
+                velocity_update_requested: false,
+                used_homing_velocity: false,
+            }
+        );
+        assert_eq!(
+            original_state4_motion_response(
+                OriginalState4Inputs {
+                    support_blocked: true,
+                    top_blocked: false,
+                    frame_counter: 3,
+                    update_period: 5,
+                    velocity_range: 40,
+                    target_distance_threshold: 100,
+                    target_abs_distance_sum: 150,
+                    homing_x_velocity_word: 11,
+                    homing_y_velocity_word: 12,
+                    random_x_roll: 30,
+                    random_y_roll: 50,
+                },
+                7,
+                0x40,
+            )
+            .y_velocity_word,
+            -0x20
+        );
+    }
+
+    #[test]
+    fn original_state4_motion_response_matches_fun_1000_6053_velocity_selection() {
+        assert_eq!(
+            original_state4_motion_response(
+                OriginalState4Inputs {
+                    support_blocked: false,
+                    top_blocked: false,
+                    frame_counter: 10,
+                    update_period: 5,
+                    velocity_range: 40,
+                    target_distance_threshold: 100,
+                    target_abs_distance_sum: 99,
+                    homing_x_velocity_word: -12,
+                    homing_y_velocity_word: 24,
+                    random_x_roll: 30,
+                    random_y_roll: 50,
+                },
+                7,
+                8,
+            ),
+            OriginalState4MotionResponse {
+                x_velocity_word: -12,
+                y_velocity_word: 24,
+                velocity_update_requested: true,
+                used_homing_velocity: true,
+            }
+        );
+        assert_eq!(
+            original_state4_motion_response(
+                OriginalState4Inputs {
+                    support_blocked: false,
+                    top_blocked: false,
+                    frame_counter: 10,
+                    update_period: 5,
+                    velocity_range: 40,
+                    target_distance_threshold: 100,
+                    target_abs_distance_sum: 100,
+                    homing_x_velocity_word: -12,
+                    homing_y_velocity_word: 24,
+                    random_x_roll: 30,
+                    random_y_roll: 50,
+                },
+                7,
+                8,
+            ),
+            OriginalState4MotionResponse {
+                x_velocity_word: -10,
+                y_velocity_word: 10,
+                velocity_update_requested: true,
+                used_homing_velocity: false,
             }
         );
     }

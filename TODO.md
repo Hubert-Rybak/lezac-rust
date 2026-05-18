@@ -258,6 +258,10 @@ Font rendering is now correct.
   helper with injected collision/path decisions and random X word: grounded
   landing alignment, gravity cap, target/random horizontal velocity selection,
   edge/path inversion, and animation-refresh gating ✅
+- The deterministic shell of `FUN_1000_6053` state `4` is pinned as a pure
+  helper with injected target/random velocity words: support/top bounce, frame
+  period gate, target-distance threshold, homing velocity selection, and
+  `FUN_1920_13a8(range * 2) - range` random velocity selection ✅
 - Live object-id `0x1e`, state-6 monsters now use the pinned deterministic
   `FUN_1000_5cb0` scan, velocity response, and signed 8.8 position advance ✅
 - The deterministic `FUN_1000_5cb0` damage scan is pinned: it counts `0x75`

@@ -552,6 +552,11 @@ injected collision/path inputs: grounded positive Y velocity clears and aligns
 Y, airborne objects add capped `0x40` gravity, grounded X velocity selects the
 target word or an injected random word, open path edges can invert X, and those
 branch conditions request animation refreshes.
+`FUN_1000_6053` state `4` is pinned with injected target/random velocity
+results: support/top collision can clear or bounce Y velocity, the branch only
+updates velocity when the frame counter is divisible by runtime word `0x0e`,
+near targets use the helper-produced homing velocities, and far targets use
+`FUN_1920_13a8(word_0x10 * 2) - word_0x10` for both axes.
 The original
 initialization path builds a 128-entry table of 6-byte Turbo Pascal real values
 at `0x7bda` in `FUN_1000_26e8`; `FUN_1000_432a` loads those real entries with
