@@ -7,6 +7,57 @@ pub const TILE_SOLID_MAX: u8 = 0x4C;
 pub const TILE_CEIL_MAX: u8 = 0x52;
 pub const TILE_PIXELS: usize = 8;
 
+/// Low-memory threshold table at DS:0x52 in the original executable.
+pub const ORIGINAL_DROP_THRESHOLDS_0X52: [u8; 8] = [0x28, 0x41, 0x47, 0x4e, 0x53, 0x59, 0x5d, 0x64];
+/// Low-memory animation min/max pairs at DS:0x58.
+pub const ORIGINAL_ANIMATION_RANGES_0X58: [(u8, u8); 25] = [
+    (0x5d, 0x64),
+    (0x2c, 0x2d),
+    (0x2e, 0x2f),
+    (0x01, 0x02),
+    (0x22, 0x27),
+    (0x02, 0x09),
+    (0x0a, 0x11),
+    (0x15, 0x1c),
+    (0x1d, 0x23),
+    (0x45, 0x49),
+    (0x4a, 0x4f),
+    (0x28, 0x2a),
+    (0x32, 0x34),
+    (0x36, 0x38),
+    (0x29, 0x2a),
+    (0x2b, 0x2c),
+    (0x28, 0x28),
+    (0x30, 0x31),
+    (0x2b, 0x2b),
+    (0x35, 0x35),
+    (0x39, 0x39),
+    (0x01, 0x02),
+    (0x0b, 0x0b),
+    (0x0c, 0x0c),
+    (0x0d, 0x0d),
+];
+/// Low-memory selector bytes starting at DS:0x77 for low-object damage response.
+pub const ORIGINAL_LOW_OBJECT_DAMAGE_SELECTORS_0X77: [u8; 19] = [
+    0x2c, 0x28, 0x28, 0x30, 0x31, 0x2b, 0x2b, 0x35, 0x35, 0x39, 0x39, 0x01, 0x02, 0x0b, 0x0b, 0x0c,
+    0x0c, 0x0d, 0x0d,
+];
+/// Low-memory spawn selector pairs at DS:0x80/0x81.
+pub const ORIGINAL_SPAWN_SELECTOR_PAIRS_0X80: [(u8, u8); 5] = [
+    (0x39, 0x39),
+    (0x01, 0x02),
+    (0x0b, 0x0b),
+    (0x0c, 0x0c),
+    (0x0d, 0x0d),
+];
+/// Low-memory cleanup/death animation selectors at DS:0x6a/0x6c/0x6d.
+pub const ORIGINAL_CLEANUP_ANIMATION_SELECTORS: OriginalAnimationSelectors =
+    OriginalAnimationSelectors {
+        low_object_frame: 0x45,
+        high_object_frame: 0x4a,
+        max_frame: 0x4f,
+    };
+
 #[derive(Clone, Copy, Debug)]
 pub struct MonsterSpawn {
     pub raw: [u8; 30],
@@ -465,6 +516,14 @@ impl MonsterSpawn {
         let selector_pair = *selector_table_pairs.get(self.original_template_selector() as usize)?;
         let animation_range = *animation_ranges.get(selector_pair.0 as usize)?;
         Some(self.original_spawn_allocation_request(selector_pair, animation_range))
+    }
+    pub fn original_spawn_allocation_request_from_original_tables(
+        self,
+    ) -> Option<OriginalSpawnAllocationRequest> {
+        self.original_spawn_allocation_request_from_tables(
+            &ORIGINAL_SPAWN_SELECTOR_PAIRS_0X80,
+            &ORIGINAL_ANIMATION_RANGES_0X58,
+        )
     }
 }
 
@@ -1904,6 +1963,26 @@ mod tests {
     }
 
     #[test]
+    fn original_cleanup_selector_constants_match_lezac_exe_low_memory_table() {
+        assert_eq!(
+            MonsterAnimationSeed::from_original_cleanup_selector(
+                0x12,
+                ORIGINAL_CLEANUP_ANIMATION_SELECTORS
+            )
+            .original_block(),
+            [0x45, 0x45, 0x4f, 2, 2, 1, 1]
+        );
+        assert_eq!(
+            MonsterAnimationSeed::from_original_cleanup_selector(
+                0x13,
+                ORIGINAL_CLEANUP_ANIMATION_SELECTORS
+            )
+            .original_block(),
+            [0x4a, 0x4a, 0x4f, 2, 2, 1, 1]
+        );
+    }
+
+    #[test]
     fn sprite_selector_entry_matches_fun_1000_5a75_origin_offset_shape() {
         let entry = OriginalSpriteSelectorEntry {
             x_offset: -4,
@@ -2344,6 +2423,60 @@ mod tests {
                 &animation_ranges[..3]
             )
             .is_none());
+    }
+
+    #[test]
+    fn monster_spawn_allocation_request_uses_lezac_exe_low_memory_tables() {
+        let mut raw = [0; 30];
+        raw[0x00..0x02].copy_from_slice(&0x0120_u16.to_le_bytes());
+        raw[0x02..0x04].copy_from_slice(&0x00a0_u16.to_le_bytes());
+        raw[0x0b] = 4;
+        raw[0x1a] = 3;
+        raw[0x1d] = 2;
+        let spawn = MonsterSpawn { raw };
+
+        let request = spawn
+            .original_spawn_allocation_request_from_original_tables()
+            .unwrap();
+        assert_eq!(
+            request,
+            OriginalSpawnAllocationRequest {
+                x_px: 0x0120,
+                y_px: 0x00a0,
+                template_selector: 4,
+                allocation_param: 3,
+                selector_table_byte_0x80: 0x0d,
+                selector_table_byte_0x81: 0x0d,
+                animation_seed: MonsterAnimationSeed::from_original_setup(1, 2, 0x38, 0x36),
+            }
+        );
+        assert_eq!(request.original_object_allocation_call().param_4, 0x36);
+    }
+
+    #[test]
+    fn lezac_exe_low_memory_tables_match_checked_in_constants() {
+        let exe = include_bytes!("../assets/LEZAC.EXE");
+        let data_offset_1aa2_0000 = 0x770 + 0x1aa20 - 0x10000;
+
+        assert_eq!(
+            &exe[data_offset_1aa2_0000 + 0x52..data_offset_1aa2_0000 + 0x5a],
+            &ORIGINAL_DROP_THRESHOLDS_0X52
+        );
+        for (idx, &(min, max)) in ORIGINAL_ANIMATION_RANGES_0X58.iter().enumerate() {
+            let offset = data_offset_1aa2_0000 + 0x58 + idx * 2;
+            assert_eq!([exe[offset], exe[offset + 1]], [min, max]);
+        }
+        assert_eq!(
+            &exe[data_offset_1aa2_0000 + 0x77..data_offset_1aa2_0000 + 0x8a],
+            &ORIGINAL_LOW_OBJECT_DAMAGE_SELECTORS_0X77
+        );
+        for (idx, &(a, b)) in ORIGINAL_SPAWN_SELECTOR_PAIRS_0X80.iter().enumerate() {
+            let offset = data_offset_1aa2_0000 + 0x80 + idx * 2;
+            assert_eq!([exe[offset], exe[offset + 1]], [a, b]);
+        }
+        assert_eq!(exe[data_offset_1aa2_0000 + 0x6a], 0x45);
+        assert_eq!(exe[data_offset_1aa2_0000 + 0x6c], 0x4a);
+        assert_eq!(exe[data_offset_1aa2_0000 + 0x6d], 0x4f);
     }
 
     #[test]

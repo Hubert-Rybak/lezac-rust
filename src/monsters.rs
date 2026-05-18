@@ -1470,6 +1470,47 @@ mod tests {
     }
 
     #[test]
+    fn original_low_object_damage_response_uses_lezac_exe_selector_table() {
+        assert_eq!(
+            original_low_object_damage_response(
+                5,
+                0,
+                10,
+                9,
+                -3,
+                &crate::level::ORIGINAL_LOW_OBJECT_DAMAGE_SELECTORS_0X77
+            ),
+            Some(OriginalLowObjectDamageResponse {
+                selector_id: 0x01,
+                animation_subcounter_0x19: 5,
+                outcome: OriginalLowObjectDamageOutcome::VitalityUpdated {
+                    vitality_byte_0x24: 7,
+                },
+            })
+        );
+        assert_eq!(
+            original_low_object_damage_response(
+                5,
+                1,
+                2,
+                3,
+                -3,
+                &crate::level::ORIGINAL_LOW_OBJECT_DAMAGE_SELECTORS_0X77
+            ),
+            Some(OriginalLowObjectDamageResponse {
+                selector_id: 0x02,
+                animation_subcounter_0x19: 0xff,
+                outcome: OriginalLowObjectDamageOutcome::DeathTransition {
+                    object_id: 0x0c,
+                    state: 2,
+                    countdown: 0x19,
+                    clears_animation_mode: true,
+                },
+            })
+        );
+    }
+
+    #[test]
     fn state6_damage_scan_counts_u_tiles_every_other_column() {
         let mut level = level_with_size(12, 12);
         let x_tile = 4;
@@ -2241,6 +2282,40 @@ mod tests {
         assert_eq!(
             PowerupType::original_drop_branch_rebirth(19, &thresholds),
             None
+        );
+    }
+
+    #[test]
+    fn original_drop_threshold_selection_uses_lezac_exe_table() {
+        let thresholds = &crate::level::ORIGINAL_DROP_THRESHOLDS_0X52;
+
+        assert_eq!(PowerupType::original_drop_bonus_id(0x27, thresholds), None);
+        assert_eq!(
+            PowerupType::original_drop_bonus_id(0x28, thresholds),
+            Some(0)
+        );
+        assert_eq!(
+            PowerupType::original_drop_bonus_id(0x41, thresholds),
+            Some(0)
+        );
+        assert_eq!(
+            PowerupType::original_drop_bonus_id(0x42, thresholds),
+            Some(1)
+        );
+        assert_eq!(
+            PowerupType::original_drop_bonus_id(0x63, thresholds),
+            Some(6)
+        );
+        assert_eq!(
+            PowerupType::original_drop_branch_rebirth(0x63, thresholds),
+            Some(OriginalDropBranchRebirth {
+                bonus_id: 6,
+                object_id: 0x19,
+                selector_id: 0x44,
+                countdown: 100,
+                clears_animation_mode: true,
+                y_velocity_word_delta: -200,
+            })
         );
     }
 

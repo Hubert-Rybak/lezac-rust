@@ -119,24 +119,21 @@ Each controller tick decrements timer byte `0x1b` before testing it; when it
 reaches zero and active flag/count/budget are all non-zero, the timer is reset
 from `0x1c`. Count byte `0x09` and budget byte `0x0a` are decremented only
 after the original allocation path reports a successful spawn.
-The allocation request shape is now modeled with injected low-memory tables:
-`record[0x0b]` selects the pair at `0x80/0x81`, the first byte indexes
-animation range bytes at `0x58/0x59`, and `record[0x1d]` supplies the
-`FUN_1000_06ab` delay. The live table contents are still unavailable in the
-checked-in artifacts.
+The allocation request shape is now modeled with recovered low-memory tables
+from `assets/LEZAC.EXE`: `record[0x0b]` selects the pair at `0x80/0x81`, the
+first byte indexes animation range bytes at `0x58/0x59`, and `record[0x1d]`
+supplies the `FUN_1000_06ab` delay.
 The spawn path's `FUN_1000_2f9f` call shape is:
 `(record[0x1a], 0, record[0x0b], animation_min, 0, 0, x_px, y_px)`.
 The call helper feeds param 4 through the recovered allocation-attempt
 position-origin rule as a word-sized selector argument, matching
 `FUN_1000_2f9f`'s `int param_4` signature and its use of that argument as the
 sprite selector id.
-An audit of the available Ghidra exports found only reads of the selector
-tables (`0x58/0x59`, `0x6a/0x6c/0x6d`, `0x80/0x81`) and no writes or concrete
-data definitions for their contents; similarly named `FUN_1000_07fa` arguments
-are screen fill coordinates, not selector-table initialization.
-A broader local artifact search found only the shipped assets and Ghidra text
-exports for this project; no original `LEZAC.EXE`, DOS image, memory dump, or
-equivalent binary source is present in the workspace.
+The table constants are checked against the executable's `1aa2:0000` data
+segment mapping in tests; similarly named `FUN_1000_07fa` arguments are screen
+fill coordinates, not selector-table initialization.
+`assets/LEZAC.EXE` is checked in as the binary source for these recovered
+low-memory constants; no DOS runtime dump is currently checked in.
 The original allocation helper `FUN_1000_2f9f` also clamps its stored velocity
 words to the signed range `-0x7ff..0x7ff` before writing the runtime object
 fields. Allocation succeeds only while the active object count byte is below
@@ -571,9 +568,8 @@ starting at `0x52`, and turns the object into bonus id `local_14` / object id
 `local_14 + 0x13` when the roll is at or above the first threshold. That branch
 applies selector id `local_14 + 0x3e`, resets countdown byte `0x02` to `100`,
 clears animation byte `0x1b`, and subtracts `200` from the Y velocity word. The
-Rust port now exposes this threshold-selection and rebirth side-effect shape as
-a parameterized helper; the actual threshold bytes are not recoverable from the
-current repo artifacts.
+threshold bytes are recovered from `assets/LEZAC.EXE` as
+`[0x28, 0x41, 0x47, 0x4e, 0x53, 0x59, 0x5d, 0x64]`.
 The current JollyCloud bridge uses `OriginalRng` for its horizontal `-40..39`
 spawn offsets. Tests guard against direct host-RNG calls returning to the game
 and monster modules. Live monster-motion bounded-record preprocessing now also

@@ -68,8 +68,8 @@ Font rendering is now correct.
   original `FUN_1000_6053` threshold-selection algorithm is pinned as a
   parameterized helper, including the `object_id = bonus_id + 0x13`,
   `selector_id = bonus_id + 0x3e`, countdown `100`, animation clear, and
-  `-200` Y-velocity side effects; the actual low-memory threshold bytes at
-  `0x52+` are not present in the repo artifacts ✅
+  `-200` Y-velocity side effects; the original low-memory threshold bytes at
+  `0x52+` are recovered from `assets/LEZAC.EXE` and checked in as constants ✅
 - JollyCloud bridge spawn offsets consume the original RNG helper instead of
   host randomness ✅
 - The `FUN_1000_6053` pickup effect-id branch is pinned for ids `2..6`,
@@ -330,10 +330,10 @@ Font rendering is now correct.
 - Spawn-controller timer/count/budget mutation is pinned: timer byte `0x1b`
   decrements before the zero check, resets from `0x1c` for allocation attempts,
   and count/budget bytes decrement after successful allocation ✅
-- Spawn allocation request construction is modeled with injected original
-  low-memory selector bytes `0x80/0x81` and animation range bytes `0x58/0x59`;
-  the original table indexing and missing-table failure cases are pinned, while
-  wiring live spawning still depends on recovering those table contents ✅
+- Spawn allocation request construction now has recovered original low-memory
+  selector bytes `0x80/0x81` and animation range bytes `0x58/0x59` from
+  `assets/LEZAC.EXE`; original table indexing and missing-table failure cases
+  remain pinned, while live delayed spawning is still not wired ✅
 - Spawn allocation requests now expose the recovered eight-argument
   `FUN_1000_2f9f` call shape used by the original spawn-controller path ✅
 - The recovered `FUN_1000_2f9f` call shape can now run through the pure
@@ -341,9 +341,9 @@ Font rendering is now correct.
 - Audited the checked-in Ghidra exports for selector-table writes/data
   definitions; only reads were found, and the apparent `FUN_1000_07fa(...,0x58,...)`
   references are screen fill coordinates rather than table initialization ✅
-- Audited the local workspace for an original executable, DOS image, memory
-  dump, or equivalent binary source; none is present in this project, and
-  sibling binaries found by the search are unrelated ✅
+- Added the original executable to the repo and recovered the low-memory
+  selector/threshold tables by mapping the `1aa2:0000` data segment from
+  `assets/LEZAC.EXE` ✅
 - `FUN_1000_2f9f` allocation velocity word clamping to `-0x7ff..0x7ff` is
   pinned as a pure helper ✅
 - `FUN_1000_2f9f` allocation capacity gate is pinned: active object counts
