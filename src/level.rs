@@ -961,6 +961,46 @@ impl OriginalSpriteSelectorEntry {
     pub fn position_origin_offset(self) -> i8 {
         0x10i8.wrapping_sub(self.origin_height)
     }
+
+    pub fn from_original_spr_record(width: u8, height: u8, pixel_data_offset: u16) -> Self {
+        Self {
+            x_offset: width as i8,
+            origin_height: height as i8,
+            y_word: pixel_data_offset as i16,
+        }
+    }
+}
+
+pub fn original_sprite_selector_entries_from_spr_bytes(
+    bytes: &[u8],
+) -> Vec<OriginalSpriteSelectorEntry> {
+    let Some((&count, rest)) = bytes.split_first() else {
+        return Vec::new();
+    };
+
+    let mut pos = 0usize;
+    let mut pixel_data_offset = 0u16;
+    let mut entries = Vec::with_capacity(count as usize);
+    for _ in 0..count {
+        if pos + 2 > rest.len() {
+            break;
+        }
+        let width = rest[pos];
+        let height = rest[pos + 1];
+        pos += 2;
+        let pixel_count = width as usize * height as usize;
+        if pos + pixel_count > rest.len() {
+            break;
+        }
+        entries.push(OriginalSpriteSelectorEntry::from_original_spr_record(
+            width,
+            height,
+            pixel_data_offset,
+        ));
+        pos += pixel_count;
+        pixel_data_offset = pixel_data_offset.wrapping_add(pixel_count as u16);
+    }
+    entries
 }
 
 impl MonsterAnimationSeed {
@@ -2024,6 +2064,28 @@ mod tests {
             ..entry
         };
         assert_eq!(wrapping_entry.position_origin_offset(), -120);
+    }
+
+    #[test]
+    fn prova_spr_reconstructs_original_sprite_selector_entries() {
+        let entries =
+            original_sprite_selector_entries_from_spr_bytes(include_bytes!("../assets/PROVA.SPR"));
+
+        assert_eq!(entries.len(), 91);
+        assert_eq!(
+            entries[0],
+            OriginalSpriteSelectorEntry::from_original_spr_record(16, 16, 0)
+        );
+        assert_eq!(
+            entries[1],
+            OriginalSpriteSelectorEntry::from_original_spr_record(16, 16, 16 * 16)
+        );
+        assert_eq!(entries[39].x_offset, 48);
+        assert_eq!(entries[39].origin_height, 20);
+        assert_eq!(entries[39].position_origin_offset(), -4);
+        assert_eq!(entries[58].x_offset, 13);
+        assert_eq!(entries[58].origin_height, 13);
+        assert_eq!(entries[58].position_origin_offset(), 3);
     }
 
     #[test]

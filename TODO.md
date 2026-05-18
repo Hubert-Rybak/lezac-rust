@@ -215,9 +215,9 @@ Font rendering is now correct.
   parameterized helper: object ids `< 0x13` use low-memory byte `0x6a`, others
   use `0x6c`, and both use max byte `0x6d` ✅
 - `FUN_1000_5a75` selector application now has its recoverable byte `0x14`
-  arithmetic pinned: the original stores `0x10 - selector_entry[1]`; the actual
-  selector table bytes appear runtime-loaded or otherwise outside the static
-  initialized bytes recovered from `assets/LEZAC.EXE` 🟡
+  arithmetic pinned: the original stores `0x10 - selector_entry[1]`; the
+  runtime selector table is reconstructed from the original SPR record stream
+  loaded from `PROVA.SPR` ✅
 - `FUN_1000_5872` motion accumulator behavior is pinned as a pure helper ✅
 - The non-`-1` random preprocessing branch of `FUN_1000_432a` is pinned with
   injected random words ✅

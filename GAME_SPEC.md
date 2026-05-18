@@ -513,8 +513,9 @@ The selector application helper `FUN_1000_5a75(selector)` copies a 4-byte
 selector-table entry into the active offset table, then stores
 `0x10 - entry[1]` into object byte `0x14`. The Rust port pins this arithmetic
 as `OriginalSpriteSelectorEntry::position_origin_offset`; the selector table
-contents themselves appear to be runtime-loaded or otherwise outside the static
-initialized bytes recovered from `assets/LEZAC.EXE`.
+is reconstructed from the original SPR loader shape used for `PROVA.SPR`:
+`[count] { width, height, pixels... }`, with each table entry carrying width,
+height, and the cumulative pixel-data offset.
 
 `FUN_1000_432a` can overwrite the `0x79f5`/`0x79f7` words before movement uses them, so the Rust port exposes the initial copied words as `MonsterMotionRuntimeFields` while the exact state-machine calls and preprocessing are still being mapped.
 
