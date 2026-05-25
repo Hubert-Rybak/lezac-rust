@@ -1509,8 +1509,225 @@ impl Powerup {
     }
 }
 
+/// Spawn monsters from the level's monster table (per LIVELS.SCH spawn records).
+/// Each spawn is a 30-byte original spawn-controller record. The current live
+/// bridge still maps raw byte `0x04` to a GRAN.MST template directly until the
+/// full original timer/count/template-selector lifecycle is wired. We blend the
+/// template's sprite_base/speed with the per-type defaults so unknown templates
+/// still look reasonable.
+pub fn spawn_monsters(
+    level: &Level,
+    templates: &[MonsterTemplate],
+    _level_idx: usize,
+) -> Vec<Monster> {
+    let mut monsters = Vec::new();
+    let motion_anchor_offsets = resolve_monster_anchor_offsets(templates);
+    for s in &level.monsters {
+        let x = s.x_px() as f32;
+        let y = s.y_px() as f32;
+        let tidx = s.template_seed() as usize;
+        let mt = MonsterType::from_id(tidx as u8);
+        let (
+            object_id,
+            anchor_table_index,
+            anchor_offset,
+            motion_sequence_ids,
+            motion_sequence_fields,
+            motion_sequence_reverse,
+            movement_seed,
+            animation_seed,
+            animation_backup_block,
+            original_state,
+            original_position_origin_offset,
+            state6_collision_size_tiles,
+            state6_damage_budget,
+            original_vitality_byte,
+            original_countdown_byte,
+            state6_removal_counter,
+            state6_death_wakeup_key,
+            dependent_death_key,
+            sprite_base,
+            speed,
+            damage,
+            flags,
+        ) = if !templates.is_empty() {
+            let t = &templates[tidx % templates.len()];
+            // GRAN.MST byte 1 is an anchor-table index in the original, so
+            // keep placeholder movement on the local type default until the
+            // original state machine is wired.
+            let sp = mt.speed();
+            // GRAN.MST byte 5 is not yet mapped to contact damage in the
+            // decompiled path, so keep placeholder damage on the local type.
+            let dmg = mt.damage();
+            let (motion_sequence_fields, motion_sequence_reverse) =
+                resolve_motion_sequence_fields(templates, t.motion_sequence_ids());
+            (
+                t.object_id,
+                t.anchor_table_index,
+                t.anchor_offset,
+                t.motion_sequence_ids(),
+                motion_sequence_fields,
+                motion_sequence_reverse,
+                t.movement_seed(),
+                t.animation_seed(),
+                t.animation_backup_block(),
+                t.initial_state,
+                t.position_origin_offset(),
+                t.state6_collision_size_tiles(),
+                t.state6_damage_budget(),
+                t.original_vitality_byte(),
+                t.initial_countdown_byte(),
+                t.state6_removal_counter(),
+                t.state6_death_wakeup_key(),
+                t.dependent_death_key(),
+                t.sprite_base as usize,
+                sp,
+                dmg,
+                t.flags,
+            )
+        } else {
+            (
+                0,
+                0,
+                None,
+                [0; 3],
+                [None; 3],
+                [false; 3],
+                MonsterMovementSeed::default(),
+                MonsterAnimationSeed::default(),
+                [0; 7],
+                0,
+                0,
+                None,
+                None,
+                0,
+                0,
+                None,
+                0,
+                0,
+                mt.sprite_base(),
+                mt.speed(),
+                mt.damage(),
+                0,
+            )
+        };
+        let mut monster = Monster::new(x, y - 16.0, mt, sprite_base, speed, damage, flags);
+        monster.object_id = object_id;
+        monster.original_state = original_state;
+        monster.original_position_origin_offset = original_position_origin_offset;
+        monster.state6_collision_size_tiles = state6_collision_size_tiles;
+        monster.state6_damage_budget = state6_damage_budget;
+        monster.original_vitality_byte = original_vitality_byte;
+        monster.original_countdown_byte = original_countdown_byte;
+        monster.state6_removal_counter = state6_removal_counter;
+        monster.state6_death_wakeup_key = state6_death_wakeup_key;
+        monster.dependent_death_key = dependent_death_key;
+        monster.anchor_table_index = anchor_table_index;
+        monster.anchor_offset = anchor_offset;
+        monster.motion_anchor_offsets = motion_anchor_offsets.clone();
+        monster.motion_sequence_ids = motion_sequence_ids;
+        monster.motion_sequence_fields = motion_sequence_fields;
+        monster.motion_sequence_reverse = motion_sequence_reverse;
+        monster.movement_seed = movement_seed;
+        monster.original_animation_seed = animation_seed;
+        monster.original_animation_backup_block = animation_backup_block;
+        monster.original_animation_mode = animation_seed.mode;
+        monster.original_motion = OriginalMotionState::new(x, y - 16.0, movement_seed);
+        monsters.push(monster);
+    }
+    monsters
+}
+
+fn resolve_monster_anchor_offsets(templates: &[MonsterTemplate]) -> Vec<(i16, i16)> {
+    let Some(max_index) = templates
+        .iter()
+        .map(|template| template.anchor_table_index as usize)
+        .max()
+    else {
+        return Vec::new();
+    };
+    let mut offsets = vec![(0, 0); max_index + 1];
+    for template in templates {
+        if let Some(anchor_offset) = template.anchor_offset {
+            offsets[template.anchor_table_index as usize] = anchor_offset;
+        }
+    }
+    offsets
+}
+
+pub fn monster_motion_runtime_fields_from_templates(
+    templates: &[MonsterTemplate],
+) -> Vec<MonsterMotionRuntimeFields> {
+    templates
+        .iter()
+        .filter_map(MonsterTemplate::runtime_motion_fields)
+        .collect()
+}
+
+pub fn preprocess_monster_motion_runtime_fields(
+    fields: &mut [MonsterMotionRuntimeFields],
+    anchor_offsets: &[(i16, i16)],
+    random_words: &[(i16, i16)],
+    trig_words: &[i16],
+) {
+    for (idx, field) in fields.iter_mut().enumerate() {
+        *field = if let Some((x_phase, y_phase)) = field.absolute_trig_phase_indices_after_advance()
+        {
+            let anchor = anchor_offsets
+                .get(field.anchor_index as usize)
+                .copied()
+                .unwrap_or_default();
+            let trig_x = trig_words
+                .get(x_phase as usize)
+                .copied()
+                .unwrap_or_default();
+            let trig_y = trig_words
+                .get(y_phase as usize)
+                .copied()
+                .unwrap_or_default();
+            field.with_absolute_preprocess(anchor, trig_x, trig_y)
+        } else {
+            let (random_x, random_y) = random_words.get(idx).copied().unwrap_or_default();
+            field.with_random_preprocess(random_x, random_y)
+        };
+    }
+}
+
+pub fn resolve_motion_sequence_fields_from_runtime_records(
+    records: &[MonsterMotionRuntimeFields],
+    ids: [u8; 3],
+) -> ([Option<MonsterMotionRuntimeFields>; 3], [bool; 3]) {
+    let fields = ids.map(|id| {
+        if id == 0 {
+            None
+        } else {
+            let index = if id > 0x80 { id.wrapping_add(0x80) } else { id };
+            records.get(index as usize - 1).copied()
+        }
+    });
+    let reverse = ids.map(|id| id > 0x80);
+    (fields, reverse)
+}
+
+fn resolve_motion_sequence_fields(
+    templates: &[MonsterTemplate],
+    ids: [u8; 3],
+) -> ([Option<MonsterMotionRuntimeFields>; 3], [bool; 3]) {
+    let fields = ids.map(|id| {
+        if id == 0 {
+            None
+        } else {
+            let index = if id > 0x80 { id.wrapping_add(0x80) } else { id };
+            templates
+                .get(index as usize - 1)
+                .and_then(MonsterTemplate::runtime_motion_fields)
+        }
+    });
+    let reverse = ids.map(|id| id > 0x80);
+    (fields, reverse)
+}
+
 #[cfg(test)]
-#[allow(clippy::items_after_test_module)]
 mod tests {
     use super::*;
 
@@ -3309,222 +3526,4 @@ mod tests {
         assert_eq!(state6_budgets, vec![Some(0x0a)]);
         assert_eq!(state6_counters, vec![Some(0x01)]);
     }
-}
-
-/// Spawn monsters from the level's monster table (per LIVELS.SCH spawn records).
-/// Each spawn is a 30-byte original spawn-controller record. The current live
-/// bridge still maps raw byte `0x04` to a GRAN.MST template directly until the
-/// full original timer/count/template-selector lifecycle is wired. We blend the
-/// template's sprite_base/speed with the per-type defaults so unknown templates
-/// still look reasonable.
-pub fn spawn_monsters(
-    level: &Level,
-    templates: &[MonsterTemplate],
-    _level_idx: usize,
-) -> Vec<Monster> {
-    let mut monsters = Vec::new();
-    let motion_anchor_offsets = resolve_monster_anchor_offsets(templates);
-    for s in &level.monsters {
-        let x = s.x_px() as f32;
-        let y = s.y_px() as f32;
-        let tidx = s.template_seed() as usize;
-        let mt = MonsterType::from_id(tidx as u8);
-        let (
-            object_id,
-            anchor_table_index,
-            anchor_offset,
-            motion_sequence_ids,
-            motion_sequence_fields,
-            motion_sequence_reverse,
-            movement_seed,
-            animation_seed,
-            animation_backup_block,
-            original_state,
-            original_position_origin_offset,
-            state6_collision_size_tiles,
-            state6_damage_budget,
-            original_vitality_byte,
-            original_countdown_byte,
-            state6_removal_counter,
-            state6_death_wakeup_key,
-            dependent_death_key,
-            sprite_base,
-            speed,
-            damage,
-            flags,
-        ) = if !templates.is_empty() {
-            let t = &templates[tidx % templates.len()];
-            // GRAN.MST byte 1 is an anchor-table index in the original, so
-            // keep placeholder movement on the local type default until the
-            // original state machine is wired.
-            let sp = mt.speed();
-            // GRAN.MST byte 5 is not yet mapped to contact damage in the
-            // decompiled path, so keep placeholder damage on the local type.
-            let dmg = mt.damage();
-            let (motion_sequence_fields, motion_sequence_reverse) =
-                resolve_motion_sequence_fields(templates, t.motion_sequence_ids());
-            (
-                t.object_id,
-                t.anchor_table_index,
-                t.anchor_offset,
-                t.motion_sequence_ids(),
-                motion_sequence_fields,
-                motion_sequence_reverse,
-                t.movement_seed(),
-                t.animation_seed(),
-                t.animation_backup_block(),
-                t.initial_state,
-                t.position_origin_offset(),
-                t.state6_collision_size_tiles(),
-                t.state6_damage_budget(),
-                t.original_vitality_byte(),
-                t.initial_countdown_byte(),
-                t.state6_removal_counter(),
-                t.state6_death_wakeup_key(),
-                t.dependent_death_key(),
-                t.sprite_base as usize,
-                sp,
-                dmg,
-                t.flags,
-            )
-        } else {
-            (
-                0,
-                0,
-                None,
-                [0; 3],
-                [None; 3],
-                [false; 3],
-                MonsterMovementSeed::default(),
-                MonsterAnimationSeed::default(),
-                [0; 7],
-                0,
-                0,
-                None,
-                None,
-                0,
-                0,
-                None,
-                0,
-                0,
-                mt.sprite_base(),
-                mt.speed(),
-                mt.damage(),
-                0,
-            )
-        };
-        let mut monster = Monster::new(x, y - 16.0, mt, sprite_base, speed, damage, flags);
-        monster.object_id = object_id;
-        monster.original_state = original_state;
-        monster.original_position_origin_offset = original_position_origin_offset;
-        monster.state6_collision_size_tiles = state6_collision_size_tiles;
-        monster.state6_damage_budget = state6_damage_budget;
-        monster.original_vitality_byte = original_vitality_byte;
-        monster.original_countdown_byte = original_countdown_byte;
-        monster.state6_removal_counter = state6_removal_counter;
-        monster.state6_death_wakeup_key = state6_death_wakeup_key;
-        monster.dependent_death_key = dependent_death_key;
-        monster.anchor_table_index = anchor_table_index;
-        monster.anchor_offset = anchor_offset;
-        monster.motion_anchor_offsets = motion_anchor_offsets.clone();
-        monster.motion_sequence_ids = motion_sequence_ids;
-        monster.motion_sequence_fields = motion_sequence_fields;
-        monster.motion_sequence_reverse = motion_sequence_reverse;
-        monster.movement_seed = movement_seed;
-        monster.original_animation_seed = animation_seed;
-        monster.original_animation_backup_block = animation_backup_block;
-        monster.original_animation_mode = animation_seed.mode;
-        monster.original_motion = OriginalMotionState::new(x, y - 16.0, movement_seed);
-        monsters.push(monster);
-    }
-    monsters
-}
-
-fn resolve_monster_anchor_offsets(templates: &[MonsterTemplate]) -> Vec<(i16, i16)> {
-    let Some(max_index) = templates
-        .iter()
-        .map(|template| template.anchor_table_index as usize)
-        .max()
-    else {
-        return Vec::new();
-    };
-    let mut offsets = vec![(0, 0); max_index + 1];
-    for template in templates {
-        if let Some(anchor_offset) = template.anchor_offset {
-            offsets[template.anchor_table_index as usize] = anchor_offset;
-        }
-    }
-    offsets
-}
-
-pub fn monster_motion_runtime_fields_from_templates(
-    templates: &[MonsterTemplate],
-) -> Vec<MonsterMotionRuntimeFields> {
-    templates
-        .iter()
-        .filter_map(MonsterTemplate::runtime_motion_fields)
-        .collect()
-}
-
-pub fn preprocess_monster_motion_runtime_fields(
-    fields: &mut [MonsterMotionRuntimeFields],
-    anchor_offsets: &[(i16, i16)],
-    random_words: &[(i16, i16)],
-    trig_words: &[i16],
-) {
-    for (idx, field) in fields.iter_mut().enumerate() {
-        *field = if let Some((x_phase, y_phase)) = field.absolute_trig_phase_indices_after_advance()
-        {
-            let anchor = anchor_offsets
-                .get(field.anchor_index as usize)
-                .copied()
-                .unwrap_or_default();
-            let trig_x = trig_words
-                .get(x_phase as usize)
-                .copied()
-                .unwrap_or_default();
-            let trig_y = trig_words
-                .get(y_phase as usize)
-                .copied()
-                .unwrap_or_default();
-            field.with_absolute_preprocess(anchor, trig_x, trig_y)
-        } else {
-            let (random_x, random_y) = random_words.get(idx).copied().unwrap_or_default();
-            field.with_random_preprocess(random_x, random_y)
-        };
-    }
-}
-
-pub fn resolve_motion_sequence_fields_from_runtime_records(
-    records: &[MonsterMotionRuntimeFields],
-    ids: [u8; 3],
-) -> ([Option<MonsterMotionRuntimeFields>; 3], [bool; 3]) {
-    let fields = ids.map(|id| {
-        if id == 0 {
-            None
-        } else {
-            let index = if id > 0x80 { id.wrapping_add(0x80) } else { id };
-            records.get(index as usize - 1).copied()
-        }
-    });
-    let reverse = ids.map(|id| id > 0x80);
-    (fields, reverse)
-}
-
-fn resolve_motion_sequence_fields(
-    templates: &[MonsterTemplate],
-    ids: [u8; 3],
-) -> ([Option<MonsterMotionRuntimeFields>; 3], [bool; 3]) {
-    let fields = ids.map(|id| {
-        if id == 0 {
-            None
-        } else {
-            let index = if id > 0x80 { id.wrapping_add(0x80) } else { id };
-            templates
-                .get(index as usize - 1)
-                .and_then(MonsterTemplate::runtime_motion_fields)
-        }
-    });
-    let reverse = ids.map(|id| id > 0x80);
-    (fields, reverse)
 }
