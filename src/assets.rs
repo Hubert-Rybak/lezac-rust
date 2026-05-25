@@ -376,6 +376,127 @@ fn default_records() -> Vec<HighScore> {
     .collect()
 }
 
+pub struct Background {
+    pub texture: Texture2D,
+    pub width: usize,
+    pub height: usize,
+    pixels: Vec<u8>,
+    colors: [(u8, u8, u8); 256],
+}
+
+impl Background {
+    /// SFONLEF.ZBG: 2-byte header + 13 × 6-byte gradient entries + dual-run RLE → 64000 bytes (320×200).
+    pub fn load(path: &str, pal: &Palette) -> Self {
+        let d = load_file(path);
+        const W: usize = 320;
+        const H: usize = 200;
+        const TOTAL: usize = W * H;
+        // Skip 2-byte header + 13×6 gradient palette entries = 80 bytes.
+        let data_start = 2 + 13 * 6;
+        let pixels = if d.len() > data_start {
+            rle_decompress(&d[data_start..], TOTAL)
+        } else {
+            vec![0u8; TOTAL]
+        };
+        let colors = sfonlef_palette(&d, pal);
+        let rgba = indexed_rgba(&pixels, &colors, true);
+        let t = Texture2D::from_rgba8(W as u16, H as u16, &rgba);
+        t.set_filter(FilterMode::Nearest);
+        Background {
+            texture: t,
+            width: W,
+            height: H,
+            pixels,
+            colors,
+        }
+    }
+
+    pub fn update_palette(&self, phase: u8) {
+        let colors = animated_palette_colors(self.colors, phase);
+        let rgba = indexed_rgba(&self.pixels, &colors, true);
+        self.texture
+            .update_from_bytes(self.width as u32, self.height as u32, &rgba);
+    }
+}
+
+fn sfonlef_palette(data: &[u8], fallback: &Palette) -> [(u8, u8, u8); 256] {
+    let mut colors = fallback.colors;
+    if data.len() < 2 {
+        return colors;
+    }
+    let start = data[0] as usize;
+    let count = data[1] as usize;
+    if count == 0 || start >= 256 || data.len() < 2 + count * 6 {
+        return colors;
+    }
+    let span = 256 - start;
+    for entry in 0..count {
+        let ramp_start = start + entry * span / count;
+        let ramp_end = start + (entry + 1) * span / count;
+        if ramp_start >= ramp_end {
+            continue;
+        }
+        let e = 2 + entry * 6;
+        let from = (data[e], data[e + 1], data[e + 2]);
+        let to = (data[e + 3], data[e + 4], data[e + 5]);
+        let denom = (ramp_end - ramp_start).saturating_sub(1).max(1);
+        for (step, slot) in (ramp_start..ramp_end).enumerate() {
+            let r = lerp_vga6(from.0, to.0, step, denom);
+            let g = lerp_vga6(from.1, to.1, step, denom);
+            let b = lerp_vga6(from.2, to.2, step, denom);
+            colors[slot] = (vga6to8(r), vga6to8(g), vga6to8(b));
+        }
+    }
+    colors
+}
+
+fn lerp_vga6(from: u8, to: u8, step: usize, denom: usize) -> u8 {
+    let from = from as i32;
+    let to = to as i32;
+    (from + ((to - from) * step as i32) / denom as i32).clamp(0, 63) as u8
+}
+
+pub struct TitleCard {
+    pub texture: Texture2D,
+    pub width: usize,
+    pub height: usize,
+    pixels: Vec<u8>,
+}
+
+/// CARO.CAR: [padding:u8] [width:u8=132] [raw pixels: width×height] — uncompressed.
+/// 8450 bytes file → 132×64 image (132×64 + 2 header = 8450).
+pub fn load_title_screen(path: &str, pal: &Palette) -> TitleCard {
+    let d = load_file(path);
+    let w = if d.len() >= 2 { d[1] as usize } else { 132 };
+    let w = if w == 0 { 132 } else { w };
+    let pixel_bytes = d.len().saturating_sub(2);
+    let h = pixel_bytes.checked_div(w).unwrap_or(0);
+    let h = h.max(1);
+    let total = w * h;
+    let src_len = total.min(d.len() - 2);
+    let mut pixels = vec![0u8; total];
+    if src_len > 0 {
+        pixels[..src_len].copy_from_slice(&d[2..2 + src_len]);
+    }
+    let rgba = indexed_rgba(&pixels, &pal.colors, true);
+    let t = Texture2D::from_rgba8(w as u16, h as u16, &rgba);
+    t.set_filter(FilterMode::Nearest);
+    TitleCard {
+        texture: t,
+        width: w,
+        height: h,
+        pixels,
+    }
+}
+
+impl TitleCard {
+    pub fn update_palette(&self, pal: &Palette) {
+        let rgba = indexed_rgba(&self.pixels, &pal.colors, true);
+        self.texture
+            .update_from_bytes(self.width as u32, self.height as u32, &rgba);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -602,126 +723,5 @@ mod tests {
         assert_eq!(colors[127], (255, 0, 0));
         assert_eq!(colors[128], (0, 255, 0));
         assert_eq!(colors[255], (0, 0, 255));
-    }
-}
-
-pub struct Background {
-    pub texture: Texture2D,
-    pub width: usize,
-    pub height: usize,
-    pixels: Vec<u8>,
-    colors: [(u8, u8, u8); 256],
-}
-
-impl Background {
-    /// SFONLEF.ZBG: 2-byte header + 13 × 6-byte gradient entries + dual-run RLE → 64000 bytes (320×200).
-    pub fn load(path: &str, pal: &Palette) -> Self {
-        let d = load_file(path);
-        const W: usize = 320;
-        const H: usize = 200;
-        const TOTAL: usize = W * H;
-        // Skip 2-byte header + 13×6 gradient palette entries = 80 bytes.
-        let data_start = 2 + 13 * 6;
-        let pixels = if d.len() > data_start {
-            rle_decompress(&d[data_start..], TOTAL)
-        } else {
-            vec![0u8; TOTAL]
-        };
-        let colors = sfonlef_palette(&d, pal);
-        let rgba = indexed_rgba(&pixels, &colors, true);
-        let t = Texture2D::from_rgba8(W as u16, H as u16, &rgba);
-        t.set_filter(FilterMode::Nearest);
-        Background {
-            texture: t,
-            width: W,
-            height: H,
-            pixels,
-            colors,
-        }
-    }
-
-    pub fn update_palette(&self, phase: u8) {
-        let colors = animated_palette_colors(self.colors, phase);
-        let rgba = indexed_rgba(&self.pixels, &colors, true);
-        self.texture
-            .update_from_bytes(self.width as u32, self.height as u32, &rgba);
-    }
-}
-
-fn sfonlef_palette(data: &[u8], fallback: &Palette) -> [(u8, u8, u8); 256] {
-    let mut colors = fallback.colors;
-    if data.len() < 2 {
-        return colors;
-    }
-    let start = data[0] as usize;
-    let count = data[1] as usize;
-    if count == 0 || start >= 256 || data.len() < 2 + count * 6 {
-        return colors;
-    }
-    let span = 256 - start;
-    for entry in 0..count {
-        let ramp_start = start + entry * span / count;
-        let ramp_end = start + (entry + 1) * span / count;
-        if ramp_start >= ramp_end {
-            continue;
-        }
-        let e = 2 + entry * 6;
-        let from = (data[e], data[e + 1], data[e + 2]);
-        let to = (data[e + 3], data[e + 4], data[e + 5]);
-        let denom = (ramp_end - ramp_start).saturating_sub(1).max(1);
-        for (step, slot) in (ramp_start..ramp_end).enumerate() {
-            let r = lerp_vga6(from.0, to.0, step, denom);
-            let g = lerp_vga6(from.1, to.1, step, denom);
-            let b = lerp_vga6(from.2, to.2, step, denom);
-            colors[slot] = (vga6to8(r), vga6to8(g), vga6to8(b));
-        }
-    }
-    colors
-}
-
-fn lerp_vga6(from: u8, to: u8, step: usize, denom: usize) -> u8 {
-    let from = from as i32;
-    let to = to as i32;
-    (from + ((to - from) * step as i32) / denom as i32).clamp(0, 63) as u8
-}
-
-pub struct TitleCard {
-    pub texture: Texture2D,
-    pub width: usize,
-    pub height: usize,
-    pixels: Vec<u8>,
-}
-
-/// CARO.CAR: [padding:u8] [width:u8=132] [raw pixels: width×height] — uncompressed.
-/// 8450 bytes file → 132×64 image (132×64 + 2 header = 8450).
-pub fn load_title_screen(path: &str, pal: &Palette) -> TitleCard {
-    let d = load_file(path);
-    let w = if d.len() >= 2 { d[1] as usize } else { 132 };
-    let w = if w == 0 { 132 } else { w };
-    let pixel_bytes = d.len().saturating_sub(2);
-    let h = pixel_bytes.checked_div(w).unwrap_or(0);
-    let h = h.max(1);
-    let total = w * h;
-    let src_len = total.min(d.len() - 2);
-    let mut pixels = vec![0u8; total];
-    if src_len > 0 {
-        pixels[..src_len].copy_from_slice(&d[2..2 + src_len]);
-    }
-    let rgba = indexed_rgba(&pixels, &pal.colors, true);
-    let t = Texture2D::from_rgba8(w as u16, h as u16, &rgba);
-    t.set_filter(FilterMode::Nearest);
-    TitleCard {
-        texture: t,
-        width: w,
-        height: h,
-        pixels,
-    }
-}
-
-impl TitleCard {
-    pub fn update_palette(&self, pal: &Palette) {
-        let rgba = indexed_rgba(&self.pixels, &pal.colors, true);
-        self.texture
-            .update_from_bytes(self.width as u32, self.height as u32, &rgba);
     }
 }
