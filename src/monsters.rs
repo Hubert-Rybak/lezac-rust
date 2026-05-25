@@ -1510,6 +1510,7 @@ impl Powerup {
 }
 
 #[cfg(test)]
+#[allow(clippy::items_after_test_module)]
 mod tests {
     use super::*;
 
@@ -3138,7 +3139,7 @@ mod tests {
                 let mut motion_record = [0; 16];
                 motion_record[3] = i;
                 MonsterTemplate {
-                    object_id: 0x1e + i as u8,
+                    object_id: 0x1e + i,
                     anchor_table_index: i,
                     sprite_base: 0x20 + i,
                     speed: 8,

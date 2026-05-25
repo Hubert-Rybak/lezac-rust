@@ -377,6 +377,7 @@ fn default_records() -> Vec<HighScore> {
 }
 
 #[cfg(test)]
+#[allow(clippy::items_after_test_module)]
 mod tests {
     use super::*;
 

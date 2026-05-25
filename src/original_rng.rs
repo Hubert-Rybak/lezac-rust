@@ -63,7 +63,7 @@ mod tests {
         let low_times_0x0808 =
             ((low_shift & 0xff) | ((((low_shift >> 8) & 0xff) + (low_shift & 0xff)) << 8)) & 0xffff;
         let high_partial = ((product >> 16) + low_times_0x0808 + high * 5) & 0xffff;
-        let high_byte_adjust = ((high & 0xff) * 4 + (((high << 7) & 0xff) as u32)) & 0xff;
+        let high_byte_adjust = ((high & 0xff) * 4 + ((high << 7) & 0xff)) & 0xff;
         let next_low = ((product as u16).wrapping_add(1)) as u32;
         let carry = u32::from((product & 0xffff) == 0xffff);
         let next_high = ((((high_partial & 0xff00) + (high_byte_adjust << 8)) & 0xff00)
