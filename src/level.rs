@@ -1232,6 +1232,26 @@ impl MonsterTemplate {
         )
     }
 
+    /// Fixed-record word at offset `0x0e`, used by state-3 as the target ground
+    /// X-velocity magnitude and by state-4 as the frame-counter update period.
+    /// For state-6 and state-5 (object id `0x1f`) this field is interpreted as
+    /// collision-size tiles or motion-sequence id bytes respectively.
+    pub fn state_word_0x0e(&self) -> i16 {
+        read_i16_field(&self.raw, MONSTER_TEMPLATE_MOTION_ID0_OFFSET)
+    }
+
+    /// Fixed-record word at offset `0x10`, used by state-4 as the random
+    /// velocity range (half the full random roll width).
+    pub fn state4_velocity_range(&self) -> i16 {
+        read_i16_field(&self.raw, MONSTER_TEMPLATE_MOTION_ID2_OFFSET)
+    }
+
+    /// Fixed-record word at offset `0x12`, used by state-4 as the player
+    /// distance threshold below which homing velocity is selected.
+    pub fn state4_target_distance(&self) -> u16 {
+        read_u16_field(&self.raw, MONSTER_TEMPLATE_STATE6_WAKEUP_KEY_OFFSET)
+    }
+
     /// Fixed-record movement seed words loaded by `FUN_1000_6053` before it
     /// advances the object's signed velocity/fractional accumulators.
     pub fn movement_seed(&self) -> MonsterMovementSeed {
