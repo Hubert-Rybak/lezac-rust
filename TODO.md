@@ -495,14 +495,18 @@ Font rendering is now correct.
   trig preprocessing. The current 128-phase table preserves quadrant,
   anti-symmetry, and call order, but still uses an `f64` sine approximation
   rather than the original 6-byte real helper rounding.
-- Finish extracting `FUN_1000_6053` state-machine branches beyond the shipped
-  live paths. Current shipped spawns route through original-backed `0x1f`
-  motion and `0x1e` state-6 logic, while non-shipped/dev template states still
-  fall back to older Rust placeholder movement.
-- Live-wire the pinned pure helpers for state-0/state-2/state-3/state-4 into a
-  complete original entity update path once the surrounding collision sampling,
-  player-distance selection, tile side effects, and animation rewrite ordering
-  are fully mapped.
+- `FUN_1000_6053` state-machine branches 2/3/4 are extracted and live; shipped
+  spawns route through original-backed `0x1f` motion and `0x1e` state-6 logic,
+  and non-shipped template states 2..4 now use the original dispatch instead
+  of placeholder movement. State 0 remains the only helper-only branch.
+- States 2/3/4 are now live-wired through `advance_state_machine_once`: the
+  4×4 tile-buffer collision flags, nearest-player distance selection, state
+  dispatch, state-3 animation range rewrites, and the shared post-dispatch
+  wall/ceiling response all run each frame for non-`0x1f` entities in those
+  states. Remaining gaps inside this path: the state-0 landing branch is
+  still helper-only (no shipped or droppable entity reaches state 0 through
+  the current spawn paths), and state-4 homing velocity uses a Chebyshev-norm
+  approximation instead of the original `FUN_1000_346b` FPU atan2/sin/cos.
 - Resolve the remaining GRAN.MST fixed-record byte `0x05` role from stronger
   evidence. It is preserved and its shipped values are pinned, but no direct
   fixed-template read has been recovered from `FUN_1000_6053` yet.
