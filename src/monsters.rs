@@ -18,6 +18,61 @@ const POWERUP_MAX_FALL_WORD: i16 = 0x7ff;
 const POWERUP_GRAVITY: f32 = POWERUP_GRAVITY_WORD as f32 / 256.0;
 const POWERUP_MAX_FALL: f32 = POWERUP_MAX_FALL_WORD as f32 / 256.0;
 
+/// Four-directional collision flags derived from the 4×4 tile buffer centred on
+/// the entity, mirroring the `bVar25/bVar26/bVar9/bVar5` locals in
+/// `FUN_1000_6053` before state dispatch.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct EntityCollisionFlags {
+    /// Row+3 col+1 or col+2 is solid (entity standing on something).
+    grounded: bool,
+    /// Col row+1 or row+2 is solid (wall to the left).
+    left: bool,
+    /// Col+3 row+1 or row+2 is solid (wall to the right).
+    right: bool,
+    /// Col+1 or col+2 row is solid (ceiling above).
+    top: bool,
+    /// Col row+3 is NOT solid-for-ceiling — no tile under the negative-dir foot.
+    /// Used by state-3 edge detection to invert direction at ledges.
+    negative_edge_clear: bool,
+    /// Col+3 row+3 is NOT solid-for-ceiling — no tile under the positive-dir foot.
+    positive_edge_clear: bool,
+}
+
+/// Compute the `FUN_1000_6053` 4×4 tile-buffer collision flags for an entity
+/// whose pixel position is `(x_px, y_px)`.  The buffer top-left is placed at
+/// tile `(col, row)` where `col = ((x_px+4)>>3) - 1` and `row = (y_px>>3) - 1`,
+/// exactly matching the `local_2c` pointer in the original.
+fn compute_entity_collision_flags(level: &Level, x_px: i16, y_px: i16) -> EntityCollisionFlags {
+    let col = (((x_px as i32 + 4) >> 3) - 1).max(0) as usize;
+    let row = ((y_px as i32 >> 3) - 1).max(0) as usize;
+    let is_solid = |t: u8| t != 0 && t <= TILE_SOLID_MAX;
+    let is_ceil = |t: u8| t != 0 && t <= TILE_CEIL_MAX;
+    EntityCollisionFlags {
+        grounded: is_solid(level.tile_at(col + 1, row + 3))
+            || is_solid(level.tile_at(col + 2, row + 3)),
+        left: is_solid(level.tile_at(col, row + 1)) || is_solid(level.tile_at(col, row + 2)),
+        right: is_solid(level.tile_at(col + 3, row + 1))
+            || is_solid(level.tile_at(col + 3, row + 2)),
+        top: is_solid(level.tile_at(col + 1, row)) || is_solid(level.tile_at(col + 2, row)),
+        negative_edge_clear: !is_ceil(level.tile_at(col, row + 3)),
+        positive_edge_clear: !is_ceil(level.tile_at(col + 3, row + 3)),
+    }
+}
+
+/// Approximate homing velocity toward `(dx, dy)` scaled by `range`, using
+/// Chebyshev-norm normalization.  The original uses FPU atan2/sin/cos via
+/// `FUN_1000_346b`; this gives the same direction and roughly correct
+/// magnitude, which is sufficient for non-shipped state-4 entities.
+fn compute_homing_velocity_approx(dx: i16, dy: i16, range: i16) -> (i16, i16) {
+    let ax = dx.unsigned_abs() as i32;
+    let ay = dy.unsigned_abs() as i32;
+    let denom = ax.max(ay).max(1);
+    let r = range.unsigned_abs() as i32;
+    let vx = (dx as i32 * r / denom) as i16;
+    let vy = (dy as i32 * r / denom) as i16;
+    (vx, vy)
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 struct State6CollisionFlags {
     top: bool,
@@ -789,6 +844,16 @@ pub struct Monster {
     /// template state fields are still being mapped. Loaded GRAN.MST templates
     /// currently leave this at zero; byte 0 is the object id.
     pub flags: u8,
+    /// Fixed-record word at `0x0e`: state-3 target ground X-velocity magnitude
+    /// (unsigned) or state-4 frame-counter update period.
+    pub state_word_0x0e: i16,
+    /// Fixed-record word at `0x10`: state-4 random velocity range (half-width).
+    pub state4_velocity_range: i16,
+    /// Fixed-record word at `0x12`: state-4 player-distance homing threshold.
+    pub state4_target_distance: u16,
+    /// Fixed-record bytes `0x03` and `0x04`: animation range selector ids used
+    /// by the state-3 direction-change animation rewrite.
+    pub horizontal_anim_selectors: (u8, u8),
 }
 
 impl Monster {
@@ -843,6 +908,10 @@ impl Monster {
             speed,
             damage,
             flags,
+            state_word_0x0e: 0,
+            state4_velocity_range: 0,
+            state4_target_distance: 0,
+            horizontal_anim_selectors: (0, 0),
         }
     }
     /// True when the current bridge treats this monster as floating.
@@ -1060,6 +1129,167 @@ impl Monster {
 
     pub fn uses_original_state5_countdown(&self) -> bool {
         self.original_state == 5 && self.object_id != 0
+    }
+
+    /// True when this entity should be updated by the state-2/3/4 branch of
+    /// `FUN_1000_6053`.  Entities already handled by the `0x1f` motion-record
+    /// path are excluded so the two paths do not overlap.
+    pub fn uses_state_machine_update(&self) -> bool {
+        self.alive
+            && (2..=4).contains(&self.original_state)
+            && !self.uses_original_motion_update()
+    }
+
+    /// Advance one tick for entities in `FUN_1000_6053` states 2, 3, or 4.
+    /// Includes animation, state dispatch, post-dispatch wall/ceiling collision
+    /// response, 8.8 position advance, and position sync.
+    pub fn advance_state_machine_once(
+        &mut self,
+        level: &Level,
+        players: &[Player],
+        dt: f32,
+        frame_counter: u32,
+        rng: &mut OriginalRng,
+    ) {
+        self.advance_live_animation(dt);
+        let flags = compute_entity_collision_flags(
+            level,
+            self.original_motion.x_px,
+            self.original_motion.y_px,
+        );
+
+        match self.original_state {
+            2 => {
+                let resp = original_state2_motion_response(
+                    flags.grounded,
+                    self.original_motion.x_velocity_word,
+                    self.original_motion.y_velocity_word,
+                    self.original_motion.y_px,
+                );
+                self.original_motion.x_velocity_word = resp.x_velocity_word;
+                self.original_motion.y_velocity_word = resp.y_velocity_word;
+                self.original_motion.y_px = resp.y_position_word;
+            }
+            3 => {
+                let abs_vel = self.original_motion.x_velocity_word.unsigned_abs() as i32;
+                let target_abs = (self.state_word_0x0e as i32).abs();
+                let random_x = if flags.grounded
+                    && self.original_motion.x_velocity_word != 0
+                    && abs_vel != target_abs
+                {
+                    rng.next_word() as i16
+                } else {
+                    self.original_motion.x_velocity_word
+                };
+                let collision = OriginalState3CollisionInputs {
+                    grounded: flags.grounded,
+                    left_blocked: flags.left,
+                    right_blocked: flags.right,
+                    negative_direction_path_clear: flags.negative_edge_clear,
+                    positive_direction_path_clear: flags.positive_edge_clear,
+                };
+                let resp = original_state3_motion_response(
+                    collision,
+                    self.original_motion.x_velocity_word,
+                    self.original_motion.y_velocity_word,
+                    self.original_motion.y_px,
+                    self.state_word_0x0e,
+                    random_x,
+                );
+                self.original_motion.x_velocity_word = resp.x_velocity_word;
+                self.original_motion.y_velocity_word = resp.y_velocity_word;
+                self.original_motion.y_px = resp.y_position_word;
+                if resp.animation_refresh_requested {
+                    if let Some(upd) = original_state3_animation_range_update(
+                        resp.x_velocity_word,
+                        self.horizontal_anim_selectors.0,
+                        self.horizontal_anim_selectors.1,
+                        &crate::level::ORIGINAL_ANIMATION_RANGES_0X58,
+                    ) {
+                        self.original_animation_seed.frame = upd.frame;
+                        self.original_animation_seed.frame_min = upd.frame_min;
+                        self.original_animation_seed.frame_max = upd.frame_max;
+                    }
+                }
+            }
+            4 => {
+                let update_period = self.state_word_0x0e as u16;
+                let should_update = update_period != 0
+                    && (frame_counter as u16).wrapping_rem(update_period) == 0;
+                let (random_x_roll, random_y_roll) = if should_update {
+                    (rng.next_word(), rng.next_word())
+                } else {
+                    (0, 0)
+                };
+                let nearest = players
+                    .iter()
+                    .filter(|p| p.alive)
+                    .min_by_key(|p| {
+                        let dx = (p.x as i32 - self.original_motion.x_px as i32).abs();
+                        let dy = (p.y as i32 - self.original_motion.y_px as i32).abs();
+                        dx + dy
+                    });
+                let (target_abs_distance_sum, homing_x, homing_y) =
+                    if let Some(p) = nearest {
+                        let dx = (p.x as i16).wrapping_sub(self.original_motion.x_px);
+                        let dy = (p.y as i16).wrapping_sub(self.original_motion.y_px);
+                        let sum = (dx.unsigned_abs() as u32)
+                            .saturating_add(dy.unsigned_abs() as u32) as u16;
+                        let (hx, hy) = compute_homing_velocity_approx(
+                            dx,
+                            dy,
+                            self.state4_velocity_range,
+                        );
+                        (sum, hx, hy)
+                    } else {
+                        (u16::MAX, 0, 0)
+                    };
+                let resp = original_state4_motion_response(
+                    OriginalState4Inputs {
+                        support_blocked: flags.grounded,
+                        top_blocked: flags.top,
+                        frame_counter: frame_counter as u16,
+                        update_period,
+                        velocity_range: self.state4_velocity_range,
+                        target_distance_threshold: self.state4_target_distance,
+                        target_abs_distance_sum,
+                        homing_x_velocity_word: homing_x,
+                        homing_y_velocity_word: homing_y,
+                        random_x_roll,
+                        random_y_roll,
+                    },
+                    self.original_motion.x_velocity_word,
+                    self.original_motion.y_velocity_word,
+                );
+                self.original_motion.x_velocity_word = resp.x_velocity_word;
+                self.original_motion.y_velocity_word = resp.y_velocity_word;
+            }
+            _ => {}
+        }
+
+        // Post-dispatch common collision response from FUN_1000_6053 lines 805-820:
+        if flags.top && self.original_motion.y_velocity_word < 0 {
+            self.original_motion.y_velocity_word = 1;
+        }
+        if flags.left && flags.right {
+            self.original_motion.x_velocity_word = 0;
+        }
+        if (flags.left && self.original_motion.x_velocity_word < 0)
+            || (flags.right && self.original_motion.x_velocity_word > 0)
+        {
+            self.original_motion.x_velocity_word = -self.original_motion.x_velocity_word / 2;
+            if self.original_motion.x_velocity_word < 0 {
+                self.original_motion.x_px -= 1;
+            } else {
+                self.original_motion.x_px += 1;
+            }
+        }
+
+        self.original_motion.advance();
+        self.x = self.original_motion.x_px as f32;
+        self.y = self.original_motion.y_px as f32;
+        self.facing_right = self.original_motion.x_velocity_word >= 0;
+        self.clamp_to_level(level);
     }
 
     fn clamp_to_level(&mut self, level: &Level) {
@@ -1633,6 +1863,13 @@ pub fn spawn_monsters(
         monster.original_animation_backup_block = animation_backup_block;
         monster.original_animation_mode = animation_seed.mode;
         monster.original_motion = OriginalMotionState::new(x, y - 16.0, movement_seed);
+        if !templates.is_empty() {
+            let t = &templates[tidx % templates.len()];
+            monster.state_word_0x0e = t.state_word_0x0e();
+            monster.state4_velocity_range = t.state4_velocity_range();
+            monster.state4_target_distance = t.state4_target_distance();
+            monster.horizontal_anim_selectors = t.horizontal_animation_selectors();
+        }
         monsters.push(monster);
     }
     monsters

@@ -606,6 +606,17 @@ impl Game {
                         }
                     }
                     OriginalDeathCountdownResult::Inactive
+                        if m.uses_state_machine_update() =>
+                    {
+                        m.advance_state_machine_once(
+                            &self.levels[li],
+                            &ps,
+                            dt,
+                            frame_counter,
+                            &mut self.original_rng,
+                        );
+                    }
+                    OriginalDeathCountdownResult::Inactive
                         if m.uses_original_state5_countdown() =>
                     {
                         m.advance_original_state5_countdown(frame_counter);
