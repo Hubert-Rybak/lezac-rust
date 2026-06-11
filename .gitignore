@@ -4,3 +4,5 @@ target/
 test_assets.sh
 decode_caro.py
 
+!web/index.html
+web/*.wasm

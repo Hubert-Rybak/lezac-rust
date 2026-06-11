@@ -299,37 +299,24 @@ fn encode_records(records: &[HighScore]) -> Vec<u8> {
 
 #[cfg(target_arch = "wasm32")]
 fn load_records_from_wasm_storage() -> Option<Vec<HighScore>> {
-    let encoded = wasm_record_storage()?
-        .get_item(WASM_RECORD_STORAGE_KEY)
-        .ok()??;
+    let encoded = quad_storage::STORAGE
+        .lock()
+        .ok()?
+        .get(WASM_RECORD_STORAGE_KEY)?;
     let bytes = decode_hex_bytes(&encoded)?;
     Some(parse_records(&bytes))
 }
 
 #[cfg(target_arch = "wasm32")]
 fn save_records_to_wasm_storage(records: &[HighScore]) -> std::io::Result<()> {
-    let storage = wasm_record_storage().ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "browser localStorage unavailable",
-        )
-    })?;
-    storage
-        .set_item(
-            WASM_RECORD_STORAGE_KEY,
-            &encode_hex_bytes(&encode_records(records)),
-        )
-        .map_err(|_| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "browser localStorage write failed",
-            )
-        })
-}
-
-#[cfg(target_arch = "wasm32")]
-fn wasm_record_storage() -> Option<web_sys::Storage> {
-    web_sys::window()?.local_storage().ok()?
+    let mut storage = quad_storage::STORAGE
+        .lock()
+        .map_err(|_| std::io::Error::other("browser localStorage unavailable"))?;
+    storage.set(
+        WASM_RECORD_STORAGE_KEY,
+        &encode_hex_bytes(&encode_records(records)),
+    );
+    Ok(())
 }
 
 fn encode_hex_bytes(bytes: &[u8]) -> String {

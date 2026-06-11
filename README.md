@@ -25,10 +25,32 @@ cargo build --release
 
 ### WebAssembly (WASM)
 
+Play online: **<https://hubert-rybak.github.io/lezac-rust/>**
+
+Every push to `master` builds the WASM target and deploys it to GitHub Pages
+via `.github/workflows/wasm-pages.yml`. One-time setup: in the repository
+settings, set **Settings → Pages → Source** to **GitHub Actions**.
+
+To build and run locally:
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo build --release --target wasm32-unknown-unknown
+cp target/wasm32-unknown-unknown/release/larax-zaco.wasm web/
+python3 -m http.server -d web 8080
+# open http://localhost:8080
+```
+
 WASM builds compile with `wasm32-unknown-unknown`. The shipped data files are
 embedded for `wasm32`, so startup does not depend on browser filesystem access.
 High scores use the original `RECS.DAT` binary layout on native builds and are
-stored in browser `localStorage` on web builds.
+stored in browser `localStorage` (via `quad-storage`) on web builds.
+
+The `web/` directory contains the static shell deployed to Pages:
+`index.html`, macroquad's JS loader (`mq_js_bundle.js`, vendored from
+macroquad), the sapp-jsutils helpers (`sapp_jsutils.js`, vendored from the
+sapp-jsutils crate repo), and the `quad-storage` JS plugin
+(`quad-storage.js`, vendored from the quad-storage crate repo).
 
 ## Fidelity Status
 
