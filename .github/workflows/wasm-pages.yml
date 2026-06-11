@@ -38,10 +38,9 @@ jobs:
           cp web/* _site/
           cp target/wasm32-unknown-unknown/release/larax-zaco.wasm _site/
 
+      # One-time repo setup required: Settings -> Pages -> Source: "GitHub Actions"
       - name: Configure Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

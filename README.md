@@ -28,7 +28,8 @@ cargo build --release
 Play online: **<https://hubert-rybak.github.io/lezac-rust/>**
 
 Every push to `master` builds the WASM target and deploys it to GitHub Pages
-via `.github/workflows/wasm-pages.yml`.
+via `.github/workflows/wasm-pages.yml`. One-time setup: in the repository
+settings, set **Settings → Pages → Source** to **GitHub Actions**.
 
 To build and run locally:
 
@@ -47,8 +48,9 @@ stored in browser `localStorage` (via `quad-storage`) on web builds.
 
 The `web/` directory contains the static shell deployed to Pages:
 `index.html`, macroquad's JS loader (`mq_js_bundle.js`, vendored from
-macroquad), and the `quad-storage` JS plugin (`quad-storage.js`, vendored
-from the quad-storage crate repo).
+macroquad), the sapp-jsutils helpers (`sapp_jsutils.js`, vendored from the
+sapp-jsutils crate repo), and the `quad-storage` JS plugin
+(`quad-storage.js`, vendored from the quad-storage crate repo).
 
 ## Fidelity Status
 
