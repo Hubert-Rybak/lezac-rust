@@ -14,6 +14,12 @@ pub const HUD_HEIGHT: f32 = 40.0;
 pub const PLAY_HEIGHT: f32 = SCREEN_H - HUD_HEIGHT;
 const EXPLOSION_DRAW_DURATION: f32 = 0.5;
 
+/// miniquad's render-target texture is stored with opposite vertical origin on
+/// native OpenGL vs WebGL, so the offscreen 320x200 buffer must be flipped when
+/// blitting to the screen on native but not on the web (where it would render
+/// upside down).
+const FLIP_RENDER_TARGET_Y: bool = !cfg!(target_arch = "wasm32");
+
 pub struct Renderer {
     pub render_target: RenderTarget,
     pub camera: Camera2D,
@@ -57,7 +63,7 @@ impl Renderer {
             WHITE,
             DrawTextureParams {
                 dest_size: Some(vec2(dw, dh)),
-                flip_y: true,
+                flip_y: FLIP_RENDER_TARGET_Y,
                 ..Default::default()
             },
         );

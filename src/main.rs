@@ -11,6 +11,7 @@ mod original_rng;
 mod player;
 mod renderer;
 mod sound;
+mod touch;
 
 use assets::*;
 use game::*;
@@ -206,13 +207,19 @@ fn format_high_score_entry_name(name: &str) -> String {
 }
 
 fn window_conf() -> Conf {
-    Conf {
+    let mut conf = Conf {
         window_title: "Larax & Zaco".to_owned(),
         window_width: 960,
         window_height: 600,
         window_resizable: true,
         ..Default::default()
-    }
+    };
+    // miniquad defaults to WebGL1, but its render-target path (used for our
+    // 320x200 offscreen buffer) calls WebGL2-only GL functions, which leaves the
+    // framebuffer non-functional and the page black on the web. Request WebGL2,
+    // which every target browser — including iOS Safari 15+ — supports.
+    conf.platform.webgl_version = macroquad::miniquad::conf::WebGLVersion::WebGL2;
+    conf
 }
 
 #[macroquad::main(window_conf)]
@@ -251,6 +258,7 @@ async fn main() {
     let mut palette_phase = 0_u8;
 
     loop {
+        touch::update();
         accum += get_frame_time().min(0.25);
         // Cap to a few steps to avoid spiral-of-death after a stall.
         let mut steps = 0;
@@ -394,6 +402,7 @@ async fn main() {
                             draw_text_centered(&fonts, m, 80.0, RED);
                         }
                     }
+                    touch::draw_controls(&fonts);
                 }
             }
             GameState::LevelComplete => {

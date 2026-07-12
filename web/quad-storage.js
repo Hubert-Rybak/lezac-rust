@@ -37,5 +37,10 @@ miniquad_add_plugin({
     register_plugin: params_register_js_plugin,
     on_init: params_set_mem,
     name: "quad_storage",
-    version: "0.1.4"
+    // The bundle compares this against quad_storage_crate_version(), which
+    // returns miniquad-style encoded integer (major<<24)+(minor<<16)+patch.
+    // quad-storage-sys 0.1.0 => (0<<24)+(1<<16)+0 = 65536. Matching it keeps the
+    // console clean; storage works regardless since the env functions register
+    // before the version check runs.
+    version: 65536
 });

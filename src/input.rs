@@ -41,4 +41,17 @@ impl PlayerInput {
     pub fn change_weapon(&self) -> bool {
         self.weapon_change
     }
+
+    /// Combine two input sources (e.g. keyboard and on-screen touch controls),
+    /// taking the logical OR of every button.
+    pub fn or(self, other: Self) -> Self {
+        PlayerInput {
+            left: self.left || other.left,
+            right: self.right || other.right,
+            down: self.down || other.down,
+            jump: self.jump || other.jump,
+            fire: self.fire || other.fire,
+            weapon_change: self.weapon_change || other.weapon_change,
+        }
+    }
 }

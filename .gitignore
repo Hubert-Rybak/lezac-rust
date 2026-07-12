@@ -6,3 +6,6 @@ decode_caro.py
 
 !web/index.html
 web/*.wasm
+
+# Local web build output (assembled by CI from web/ + wasm)
+_site/
