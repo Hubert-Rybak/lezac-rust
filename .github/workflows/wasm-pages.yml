@@ -37,6 +37,12 @@ jobs:
           mkdir -p _site
           cp web/* _site/
           cp target/wasm32-unknown-unknown/release/larax-zaco.wasm _site/
+          # The WASM fetches its data files from assets/ at runtime, so they
+          # must ship with the site. Exclude the original DOS executable, which
+          # the port never loads.
+          mkdir -p _site/assets
+          cp assets/* _site/assets/
+          rm -f _site/assets/LEZAC.EXE
 
       # One-time repo setup required: Settings -> Pages -> Source: "GitHub Actions"
       - name: Configure Pages

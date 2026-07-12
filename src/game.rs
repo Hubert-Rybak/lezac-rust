@@ -291,7 +291,7 @@ impl Game {
         self.advance_frame_counter();
         match self.state {
             GameState::TitleScreen => {
-                if macroquad::input::get_last_key_pressed().is_some() {
+                if macroquad::input::get_last_key_pressed().is_some() || crate::touch::tapped() {
                     self.state = GameState::MainMenu;
                 }
             }
@@ -319,10 +319,27 @@ impl Game {
                     self.state = GameState::Records;
                 } else if is_key_pressed(KeyCode::Escape) {
                     std::process::exit(0);
+                } else if let Some(choice) = crate::touch::menu_tap() {
+                    use crate::touch::MenuTap;
+                    self.sound.play(SoundEffect::MenuSelect);
+                    match choice {
+                        MenuTap::OnePlayer => self.start_game(false),
+                        MenuTap::TwoPlayer => self.start_game(true),
+                        MenuTap::Language => self.english = !self.english,
+                        MenuTap::Info => {
+                            self.info_page = 0;
+                            self.state = GameState::Info;
+                        }
+                        MenuTap::Instructions => {
+                            self.instructions_page = 0;
+                            self.state = GameState::Instructions;
+                        }
+                        MenuTap::Records => self.state = GameState::Records,
+                    }
                 }
             }
             GameState::Info => {
-                if macroquad::input::get_last_key_pressed().is_some() {
+                if macroquad::input::get_last_key_pressed().is_some() || crate::touch::tapped() {
                     self.sound.play(SoundEffect::MenuSelect);
                     self.info_page += 1;
                     if self.info_page >= INFO_PAGE_COUNT {
@@ -332,7 +349,7 @@ impl Game {
                 }
             }
             GameState::Instructions => {
-                if macroquad::input::get_last_key_pressed().is_some() {
+                if macroquad::input::get_last_key_pressed().is_some() || crate::touch::tapped() {
                     self.sound.play(SoundEffect::MenuSelect);
                     self.instructions_page += 1;
                     if self.instructions_page >= INSTRUCTIONS_PAGE_COUNT {
@@ -342,7 +359,7 @@ impl Game {
                 }
             }
             GameState::Records => {
-                if macroquad::input::get_last_key_pressed().is_some() {
+                if macroquad::input::get_last_key_pressed().is_some() || crate::touch::tapped() {
                     self.sound.play(SoundEffect::MenuSelect);
                     self.state = GameState::MainMenu;
                 }
@@ -369,14 +386,20 @@ impl Game {
             }
             GameState::GameOver => {
                 self.state_timer -= dt;
-                if self.state_timer <= 0.0 || macroquad::input::get_last_key_pressed().is_some() {
+                if self.state_timer <= 0.0
+                    || macroquad::input::get_last_key_pressed().is_some()
+                    || crate::touch::tapped()
+                {
                     self.finish_run();
                 }
             }
             GameState::HighScoreEntry => self.update_high_score_entry(),
             GameState::FinalScore => {
                 self.state_timer -= dt;
-                if self.state_timer <= 0.0 || macroquad::input::get_last_key_pressed().is_some() {
+                if self.state_timer <= 0.0
+                    || macroquad::input::get_last_key_pressed().is_some()
+                    || crate::touch::tapped()
+                {
                     self.state = GameState::MainMenu;
                 }
             }
@@ -420,7 +443,7 @@ impl Game {
         if is_key_pressed(KeyCode::Backspace) {
             self.high_score_name.pop();
         }
-        if is_key_pressed(KeyCode::Enter) {
+        if is_key_pressed(KeyCode::Enter) || crate::touch::tapped() {
             self.sound.play(SoundEffect::HighScoreConfirm);
             self.submit_pending_high_score();
         }
@@ -458,7 +481,7 @@ impl Game {
         if li >= self.levels.len() {
             return;
         }
-        let i1 = PlayerInput::read_player1();
+        let i1 = PlayerInput::read_player1().or(crate::touch::player1_input());
         let i2 = if self.two_player {
             PlayerInput::read_player2()
         } else {

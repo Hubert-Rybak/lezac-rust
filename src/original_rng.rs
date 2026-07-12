@@ -16,14 +16,12 @@ impl OriginalRng {
     }
 
     pub fn from_system_time() -> Self {
-        let duration = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default();
-        let seconds_of_day = duration.as_secs() % 86_400;
+        let (secs, subsec_millis) = current_unix_time();
+        let seconds_of_day = secs % 86_400;
         let hour = (seconds_of_day / 3_600) as u16;
         let minute = ((seconds_of_day / 60) % 60) as u16;
         let second = (seconds_of_day % 60) as u16;
-        let hundredths = (duration.subsec_millis() / 10) as u16;
+        let hundredths = (subsec_millis / 10) as u16;
         let cx = (hour << 8) | minute;
         let dx = (second << 8) | hundredths;
         Self::from_dos_time_fields(cx, dx)
@@ -32,6 +30,29 @@ impl OriginalRng {
     pub fn seed(self) -> u32 {
         self.seed
     }
+}
+
+/// Seconds since the Unix epoch and the sub-second millisecond remainder.
+///
+/// `std::time::SystemTime::now()` panics on `wasm32-unknown-unknown` (the target
+/// has no clock), so on the web we use miniquad's JS-backed `Date.now` instead.
+#[cfg(not(target_arch = "wasm32"))]
+fn current_unix_time() -> (u64, u32) {
+    let duration = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default();
+    (duration.as_secs(), duration.subsec_millis())
+}
+
+#[cfg(target_arch = "wasm32")]
+fn current_unix_time() -> (u64, u32) {
+    let now = macroquad::miniquad::date::now().max(0.0);
+    let secs = now as u64;
+    let subsec_millis = ((now - secs as f64) * 1_000.0) as u32;
+    (secs, subsec_millis)
+}
+
+impl OriginalRng {
 
     pub fn next_word(&mut self) -> u16 {
         self.seed = self.seed.wrapping_mul(Self::MULTIPLIER).wrapping_add(1);
