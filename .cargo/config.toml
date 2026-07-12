@@ -1,0 +1,5 @@
+# Rust 1.96 stopped passing --allow-undefined to the wasm linker, so the
+# plain extern "C" JS bindings in miniquad/sapp-jsutils/quad-storage fail
+# to link unless undefined symbols are turned back into wasm env imports.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-arg=--import-undefined"]
